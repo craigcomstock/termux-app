@@ -3,7 +3,6 @@ package com.termux.app;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -15,33 +14,49 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.PorterDuff;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
+import android.text.Spannable;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.StyleSpan;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -50,13 +65,22 @@ import com.termux.terminal.EmulatorDebug;
 import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSession.SessionChangedCallback;
+import com.termux.terminal.TerminalEmulator;
+import com.termux.terminal.TerminalBuffer;
+import com.termux.terminal.TerminalRow;
 import com.termux.terminal.TextStyle;
 import com.termux.view.TerminalView;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.Runnable;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -66,9 +90,11 @@ import java.util.regex.Pattern;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
+import androidx.core.widget.TextViewCompat;
 
 /**
  * A terminal emulator activity.
@@ -80,7 +106,7 @@ import androidx.viewpager.widget.ViewPager;
  * </ul>
  * about memory leaks.
  */
-public final class TermuxActivity extends Activity implements ServiceConnection {
+public final class TermuxActivity extends AppCompatActivity implements ServiceConnection {
 
     public static final String TERMUX_FAILSAFE_SESSION_ACTION = "com.termux.app.failsafe_session";
 
@@ -134,9 +160,46 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION).build()).build();
     int mBellSoundId;
 
+    // gesture graphics things
+    RelativeLayout gestureLayout;
+    TextView letterView; // for single big letter display (and maybe also morse code in-progress
+    Paint paint;
+    GestureView gestureView;
+    TextView lineView;
+    Path path2;
+    Bitmap bitmap;
+    Canvas canvas;
+    Properties gestures;
+
+    private void toggleViewVisibility(View v) {
+        if (v.getVisibility() == View.VISIBLE) {
+            Log.e("CRAIG", "toggleViewVisibility("+v+"), was visible, making invisible");
+            v.setVisibility(View.INVISIBLE);
+        } else {
+            Log.e("CRAIG", "toggleViewVisibility("+v+"), was invisible, making visible");
+            v.setVisibility(View.VISIBLE);
+        }
+        v.invalidate();
+        v.requestFocus(); // maybe helps with hardware keyboard in lineView?
+    }
+
+    private Handler mHandler = new Handler() {
+	    @Override
+	    public void handleMessage(Message msg) {
+		if (msg.what == mHandlerCounter) {
+		    gestureView.clearDrawing();
+		    gestureView.invalidate();
+		    letterView.setText("");
+		}
+	    }
+	};
+    int mHandlerCounter = 0; // keep track of which counter is "current" and only allow that one to cancel
+
     private final BroadcastReceiver mBroadcastReceiever = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+	    Log.d("TERMUX_ACTIVITY", "onReceive, mIsVisible="+mIsVisible);
+
             if (mIsVisible) {
                 String whatToReload = intent.getStringExtra(RELOAD_STYLE_ACTION);
                 if ("storage".equals(whatToReload)) {
@@ -144,6 +207,10 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
                         TermuxInstaller.setupStorageSymlinks(TermuxActivity.this);
                     return;
                 }
+		// in order for gesture.conf to get loaded/transferred from resources to storage
+		if (ensureStoragePermissionGranted()) {
+		    loadGestureConf();
+		}
                 checkForFontAndColors();
                 mSettings.reloadFromProperties(TermuxActivity.this);
 
@@ -153,6 +220,71 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             }
         }
     };
+
+    void loadGestureConf() {
+	Log.d(EmulatorDebug.LOG_TAG, "loadGestureConf()");
+	try {
+	    String gesturesFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/gesture.conf";
+	    Log.d(EmulatorDebug.LOG_TAG, "gesturesFilePath="+gesturesFilePath);
+	    File gesturesFile = new File(gesturesFilePath);
+	    Log.d(EmulatorDebug.LOG_TAG, "gesturesFile="+gesturesFile);
+
+	    // if gesture.conf isn't at /sdcard/gesture.conf then copy from resources
+	    if (!gesturesFile.exists()) {
+		InputStream is = null;
+		OutputStream os = null;
+		try {
+		// copy from resources
+		    is = getResources().openRawResource(R.raw.gesture); // TODO extension is .conf? matters?
+		    os = new FileOutputStream(gesturesFile);
+		    byte[] buffer = new byte[1024];
+		    int length;
+		    while ((length = is.read(buffer)) > 0) {
+			os.write(buffer, 0, length);
+		    }
+		} catch(Exception e) {
+		    e.printStackTrace();
+		    Log.e(EmulatorDebug.LOG_TAG, "copy raw resource gesture.conf failed: "+e);
+		} finally {
+		    if (is != null) {
+			is.close();
+		    }
+		    if (os != null) {
+			os.close();
+		    }
+		}
+	    }
+	    gestures = new Properties();
+	    if (gesturesFile.isFile()) {
+		BufferedReader reader = null;
+		try {
+		    reader = new BufferedReader(new FileReader(gesturesFile));
+		    String line = reader.readLine();
+		    while (line != null) {
+			if (line.startsWith("#")) {
+			    Log.e(EmulatorDebug.LOG_TAG, "comment line: "+line);
+			} else {
+			    String parts[] = line.split(" ");
+			    if (parts.length != 2) {
+				Log.e(EmulatorDebug.LOG_TAG, "bad line: "+line);
+			    } else {
+				Log.e(EmulatorDebug.LOG_TAG, "key: "+parts[0]+", value: "+parts[1]);
+				gestures.setProperty(parts[0],parts[1]);
+			    }
+			}
+			line = reader.readLine();
+		    }
+		} finally {
+		    if (reader != null) {
+			reader.close();
+		    }
+		}
+	    }
+	    Log.e(EmulatorDebug.LOG_TAG, "gestures="+gestures);
+	} catch (Exception e) {
+            Log.e(EmulatorDebug.LOG_TAG, "Error in loadGestures()", e);
+        }
+    }
 
     void checkForFontAndColors() {
         try {
@@ -217,6 +349,50 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             );
         }
 
+	gestureLayout = (RelativeLayout) findViewById(R.id.gesturelayout);
+	letterView = (TextView) findViewById(R.id.letterview);
+    lineView = (TextView) findViewById(R.id.lineview);
+	gestureView = new GestureView(TermuxActivity.this);
+
+    // by default don't show letter or line view
+    // TODO make this a preference. eventually I want 2-line probably
+    //gestureView.setVisibility(View.INVISIBLE);
+    letterView.setVisibility(View.INVISIBLE);
+    lineView.setVisibility(View.INVISIBLE);
+
+    // setup lineView key listener
+    gestureView.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event)  {
+                Log.e("CRAIG", "lineView, onKey, keyCode="+keyCode+", event="+event);
+                return mTerminalView.onKeyPreIme(keyCode, event);
+            }
+        });
+
+	paint = new Paint();
+	path2 = new Path();
+	gestureLayout.addView(gestureView, new LayoutParams(
+							    RelativeLayout.LayoutParams.MATCH_PARENT,
+							    RelativeLayout.LayoutParams.MATCH_PARENT));
+	lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
+	lineView.setTypeface(Typeface.MONOSPACE); // TODO configurable please
+	// TODO figure out a way to get bluetooth keyboard to push letters into terminalview even when it is INVISIBLE
+
+	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+
+	TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(letterView,
+								   80, // minsize
+								   600, // maxsize, why not!? :p
+								   10, // step size
+								   TypedValue.COMPLEX_UNIT_SP);
+
+	paint.setDither(true);
+	paint.setColor(Color.parseColor("#FF6600")); // TODO make configurable from file
+	paint.setStyle(Paint.Style.STROKE);
+	paint.setStrokeJoin(Paint.Join.ROUND);
+	paint.setStrokeCap(Paint.Cap.ROUND);
+	paint.setStrokeWidth(4); // TODO adjust on watch for smaller stroke
+
         mTerminalView = findViewById(R.id.terminal_view);
         mTerminalView.setOnKeyListener(new TermuxViewClient(this));
 
@@ -225,11 +401,11 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         mTerminalView.requestFocus();
 
         final ViewPager viewPager = findViewById(R.id.viewpager);
-        if (mSettings.mShowExtraKeys) viewPager.setVisibility(View.VISIBLE);
+	if (mSettings.mShowExtraKeys) viewPager.setVisibility(View.VISIBLE);
 
 
         ViewGroup.LayoutParams layoutParams = viewPager.getLayoutParams();
-        layoutParams.height = layoutParams.height * mSettings.mExtraKeys.length;
+	layoutParams.height = layoutParams.height * mSettings.mExtraKeys.length;
         viewPager.setLayoutParams(layoutParams);
 
         viewPager.setAdapter(new PagerAdapter() {
@@ -268,7 +444,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
                         }
                         return true;
                     });
-                }
+		}
                 collection.addView(layout);
                 return layout;
             }
@@ -300,6 +476,13 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             return true;
         });
 
+        findViewById(R.id.toggle_gesture_button).setOnClickListener(v -> {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+                toggleViewVisibility(gestureView);
+                getDrawer().closeDrawers();
+            });
+            
         findViewById(R.id.toggle_keyboard_button).setOnClickListener(v -> {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0);
@@ -310,7 +493,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             toggleShowExtraKeys();
             return true;
         });
-
+	
         registerForContextMenu(mTerminalView);
 
         Intent serviceIntent = new Intent(this, TermuxService.class);
@@ -324,6 +507,418 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         mBellSoundId = mBellSoundPool.load(this, R.raw.bell, 1);
     }
 
+    class GestureView extends View {
+	public GestureView(Context context) {
+	    super(context);
+	    bitmap = Bitmap.createBitmap(820,480,Bitmap.Config.ARGB_4444);
+	    canvas = new Canvas(bitmap);
+	}
+
+	private ArrayList<DrawingClass> DrawingClassArrayList = new ArrayList<DrawingClass>();
+
+	// gesture stuff
+	class TsEvent {
+	    public int x;
+	    public int y;
+	    public int type;
+	}
+	TsEvent[] events = new TsEvent[300];
+	
+        boolean slash, dot, shift, control, escape, alt, caps, prefix = false;
+	
+	class Point {
+	    public int x;
+	    public int y;
+	}
+
+	int MAX_POINTS = 300;
+	class Gesture {
+	    public int minx = 0;
+	    public int maxx = 0 ;
+	    public int miny = 0;
+	    public int maxy = 0;
+	    public int numPoints = 0;
+	    public Point[] points = new Point[MAX_POINTS]; // how very C of me. :p but a limit is good
+	}
+	Gesture gs = new Gesture();
+	int gi = 0;
+	int view_width, view_height = 0;
+
+	@Override
+	protected void onSizeChanged(int xNew, int yNew, int xOld, int yOld) {
+	    super.onSizeChanged(xNew, yNew, xOld, yOld);
+	    view_width = xNew;
+	    view_height = yNew;
+	}
+
+	protected void clearDrawing() {
+	    DrawingClassArrayList.clear();
+	}
+	
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+	    DrawingClass pathWithPaint = new DrawingClass();
+	    canvas.drawPath(path2, paint);
+	    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+
+		mHandlerCounter++;
+		if (mHandlerCounter > 50) { // certainly you can't draw more than 50 gestures in a second right?
+		    mHandlerCounter = 0;
+		}
+		
+		int x = (int)event.getX();
+		int y = (int)event.getY();
+        //		Log.e("GESTURE", "ACTION_DOWN, x="+x+", y="+y);
+		
+		path2.reset(); // each gesture is separate
+		path2.moveTo(x, y);
+		path2.lineTo(x+1, y+1);
+		pathWithPaint.setPath(path2);
+		pathWithPaint.setPaint(paint);
+		DrawingClassArrayList.add(pathWithPaint);
+
+		// init a new gesture
+		gs = new Gesture();
+		gi = 0;
+		gs.minx = view_width;
+		gs.miny = view_height;
+
+		// update things as normal
+		updateMax(gs, x, y);
+		gs.points[gi] = new Point();
+		gs.points[gi].x = x;
+		gs.points[gi].y = y;
+		gi++;
+		if (gi > MAX_POINTS - 1) {
+		    gi--; // just keep pushing the last point into the last slot
+		}
+	    } else if (event.getAction() == MotionEvent.ACTION_UP) {
+		gs.numPoints = gi;
+
+		// TODO how to get the physical size of the screen so we can make the
+		// minimum chunk ratio (fourth parameter to handleGesture()) be about
+		// the size of the average human finger?
+		// TODO maybe add the minimum chunk ratio as a config in gesture.conf?
+		// For big screen phone like nexus5 view_width / 6 was good
+		// but for kc05 watch I need something a bit more forgiving view_width / 4? (nope, try 5)
+        // watch 240x240, chunk (width/4)=60
+        // nexus5 1080x1920, chunk (width/6)=320
+		String output = handleGesture(gs, view_width, view_height, (int)(view_width / 4.5));
+		Log.d(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
+		gs = new Gesture();
+		gi = 0;
+
+		mHandler.sendEmptyMessageDelayed(mHandlerCounter, 1000); // TODO delay should be configurable in a file
+		
+	    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+		int x = (int)event.getX();
+		int y = (int)event.getY();
+        //		Log.e("GESTURE", "ACTION_MOVE, x="+x+", y="+y);
+		
+		path2.lineTo(event.getX(), event.getY());
+		pathWithPaint.setPath(path2);
+		pathWithPaint.setPaint(paint);
+		DrawingClassArrayList.add(pathWithPaint);
+
+		updateMax(gs, x, y);
+		gs.points[gi] = new Point();
+		gs.points[gi].x = x;
+		gs.points[gi].y = y;
+		gi++;
+		if (gi > MAX_POINTS - 1) {
+		    gi--; // just keep pushing the last point into the last slot
+		}
+	    }
+	    invalidate();
+	    return true;
+	}
+
+	void updateMax(Gesture gs, int x, int y) {
+		if (x > gs.maxx) {
+		    gs.maxx = x;
+		}
+		if (x < gs.minx) {
+		    gs.minx = x;
+		}
+		if (y > gs.maxy) {
+		    gs.maxy = y;
+		}
+		if (y < gs.miny) {
+		    gs.miny = y;
+		}
+	}
+
+	// TODO UTF-8, other character set support? Use a String instead? auto-support for such things?
+	String handleGesture(Gesture gs, int screen_width, int screen_height, int minimum_chunk_size) {
+        //	    Log.e("TERMUX_ACTIVITY", "handleGesture(), screen_width="+screen_width+", screen_height="+screen_height+", minimum_chunk_size="+minimum_chunk_size);
+
+	    String toput = "";
+	    int MAX_KEYS = 50;
+	    int key_x[] = new int[MAX_KEYS];
+	    int key_y[] = new int[MAX_KEYS];
+	    int i, kxi, kyi;
+	    int sx, sy;
+	    int tx, ty;
+	    int rx, ry;
+	    i = 0;
+	    kxi = kyi = -1;
+	    sx = (gs.maxx - gs.minx) / 3;
+	    sy = (gs.maxy - gs.miny) / 3;
+	    if (sx < minimum_chunk_size) {
+		sx = minimum_chunk_size;
+	    }
+	    if (sy < minimum_chunk_size) {
+		sy = minimum_chunk_size;
+	    }
+	    int nw, ne, se, sw;
+	    nw = ne = se = sw = 0;
+        //	    Log.e("TERMUX_ACTIVITY", "handleGesture(), numPoints="+gs.numPoints+", minx="+gs.minx+", maxx="+gs.maxx+", miny="+gs.miny+", maxy="+gs.maxy+", sx="+sx+", sy="+sy);
+	    for (; i < gs.numPoints; i++) {
+		rx = gs.points[i].x - gs.minx;
+		tx = rx / sx;
+		ry = gs.points[i].y - gs.miny;
+		ty = ry / sy;
+		if (tx == 3) {
+		    tx = 2;
+		}
+		if (ty == 3) {
+		    ty = 2;
+		}
+        //		Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), rx="+rx+", tx="+tx+", ry="+ry+", ty="+ty);
+		
+		if (kxi == -1 || key_x[kxi] != tx) {
+		    key_x[++kxi] = tx;
+		    if (kxi > MAX_KEYS - 2) {
+			kxi = MAX_KEYS - 2;
+		    }
+		}
+		if (kyi == -1 || key_y[kyi] != ty) {
+		    key_y[++kyi] = ty;
+		    if (kyi > MAX_KEYS - 2) {
+			kyi = MAX_KEYS - 2;
+		    }
+		}
+
+		if (tx == 0 && ty == 0) {
+		    nw = 1;
+		}
+		if (tx == 2 && ty == 0) {
+		    ne = 1;
+		}
+		if (tx == 2 && ty == 2) {
+		    se = 1;
+		}
+		if (tx == 0 && ty == 2) {
+		    sw = 1;
+		}
+	    }
+	    if (kxi == -1) {
+		key_x[++kxi] = 0;
+		if (kxi > MAX_KEYS - 2) {
+		    kxi = MAX_KEYS - 2;
+		}
+	    }
+	    if (kyi == -1) {
+		key_y[++kyi] = 0;
+		if (kyi > MAX_KEYS - 2) {
+		    kyi = MAX_KEYS - 2;
+		}
+	    }
+	    String tmp, key = "";
+	    if (dot) {
+		key += ".";
+		dot = false;
+	    }
+	    if (slash) {
+		key += "/";
+		slash = false;
+	    }
+
+	    i = 0;
+	    for (; i <= kxi; i++) {
+		key += key_x[i];
+	    }
+	    key += ":";
+	    i = 0;
+	    for (; i <= kyi; i++) {
+		key += key_y[i];
+	    }
+	    if (key.equals("0:0") || key.equals(".0:0")) {
+		//		Log.d("TERMUX_ACTIVITY", "gesture, gs.maxy="+gs.maxy+", gs.miny="+gs.min
+		if (gs.maxy > screen_height - minimum_chunk_size) {
+		    key += "s";
+		}
+		if (gs.miny < minimum_chunk_size) {
+		    key += "n";
+		}
+		if (gs.maxx > screen_width - minimum_chunk_size) {
+		    key += "e";
+		}
+		if (gs.minx < minimum_chunk_size) {
+		    key += "w";
+		}
+	    }
+
+	    if (nw == 1 || ne == 1 || sw == 1 || se == 1) {
+		key += "x";
+		if (nw == 1) {
+		    key += "1";
+		}
+		if (ne == 1) {
+		    key += "2";
+		}
+		if (se == 1) {
+		    key += "3";
+		}
+		if (sw == 1) {
+		    key += "4";
+		}
+	    }
+
+	    // at this point we have our key, I think, let's just print it out and see if that much works. :+1:
+        Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), key='"+key+"'");
+
+	    if (gestures == null) {
+		// TODO this might slow down the first recog but how else to do it?
+		Log.e(EmulatorDebug.LOG_TAG, "gesture.conf not loaded, do it now");
+		if (ensureStoragePermissionGranted()) {
+		    loadGestureConf();
+		} else {
+		    Log.e(EmulatorDebug.LOG_TAG, "unable to get storage permission, can't load gesture, bailing");
+		    return "";
+		}
+	    }
+	    String value = gestures.getProperty(key);
+	    Log.e(EmulatorDebug.LOG_TAG, "value from gesture.conf: "+value);
+	    letterView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
+	    if (value != null) {
+		// first translate some special names to single character
+		if (value.equals("enter")) {
+		    toput = "" + (char)0x0d;
+		} else if (value.equals("prefix")) {
+            // TODO if in prefix mode already and keys are up or down or home or end
+            // then move 2-line "first line" around but keep current line (prompt)
+            // as second line in 2-line display
+            if (prefix) {
+                Log.e("CRAIG", "prefix-prefix entered, toggle visibility of lineView and mTerminalView");
+                toggleViewVisibility(lineView);
+                toggleViewVisibility(mTerminalView);
+                updateLineView();
+            }
+            prefix = !prefix;
+            // gesture prefix char
+            // TODO might be nice to have some graphical indication
+            // of being in prefix mode or control, shift, etc
+		    toput = "";
+		} else if (value.equals("tab")) {
+		    toput = "" + (char)0x09;
+		} else if (value.equals("backspace")) {
+		    toput = "" + (char)0x08;
+		} else if (value.equals("space")) {
+		    toput = " ";
+		} else if (value.equals("dot")) {
+		    if (dot) {
+			toput = ".";
+		    }
+		    dot = !dot;
+		} else if (value.equals("shift")) {
+		    if (shift && caps) {
+			caps = false; shift = false;
+		    } else if (shift && !caps) {
+			caps = true; shift = false;
+		    } else if (!shift && caps) {
+			shift = false; caps = false;
+		    } else {
+			shift = true;
+		    }
+		} else if (value.equals("control")) {
+		    control = !control;
+		} else {
+		    toput = value;
+		    
+		    if (value.length() == 1) {
+                if (caps || shift) {
+                    toput = "" + (char)(toput.charAt(0) - 32);
+                }
+                if (shift && !caps) {
+                    shift = !shift;
+                }
+                if (prefix) {
+                    // TODO for both 2-line and console view, need to manage keyboard input focus
+                    if (toput.equals("b")) { // big letter display
+                        toggleViewVisibility(letterView);
+                    } else if (toput.equals("i")) { // image display
+                        //                        toggleViewVisibility(graphicsView); // TODO
+                    } else if (toput.equals("g")) { // gesture layer
+                        toggleViewVisibility(gestureView);
+                    }
+                    prefix = !prefix; // regardless, get out of prefix mode
+                    toput = ""; // empty out the char, don't put anything
+                }
+                if (control) {
+                    toput = "" + (char)(toput.charAt(0) - 96);
+                    control = !control;
+                }
+		    }
+		}
+
+		Log.e(EmulatorDebug.LOG_TAG, "toput='"+toput+"' toput.length="+toput.length());
+		    
+		if (toput.length() > 0) {
+		    TerminalSession session = getCurrentTermSession();
+		    if (session != null) {
+                if (session.isRunning()) {
+                    // todo check that toput is "disaplayable" :)
+                    session.write(toput);
+                }
+		    }
+		}
+		// TODO this is odd, but wanted to avoid printing out OD OC etc for arrow keys
+		if (toput.length() == 1) {
+		    letterView.setTextColor(Color.GREEN);
+		    letterView.setText(toput);
+		}
+	    } else {
+		//		letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
+		letterView.setTextColor(Color.RED);
+		letterView.setText("key not found: "+key);
+	    }
+	    return toput;
+	}
+
+	@Override
+	protected void onDraw(Canvas canvas) {
+	    super.onDraw(canvas);
+        //	    Log.e("GESTURE", "onDraw(), DrawingClassArrayList.size="+DrawingClassArrayList.size());
+	    
+	    if (DrawingClassArrayList.size() > 0) {
+		canvas.drawPath(
+				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPath(),
+				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPaint());
+	    } else {
+		canvas.drawColor(Color.TRANSPARENT);
+	    }
+	}
+    }
+
+    public class DrawingClass {
+	Path DrawingClassPath;
+	Paint DrawingClassPaint;
+
+	public Path getPath() {
+	    return DrawingClassPath;
+	}
+	public void setPath(Path path) {
+	    this.DrawingClassPath = path;
+	}
+	public Paint getPaint() {
+	    return DrawingClassPaint;
+	}
+	public void setPaint(Paint paint) {
+	    this.DrawingClassPaint = paint;
+	}
+    }  
+    
     void toggleShowExtraKeys() {
         final ViewPager viewPager = findViewById(R.id.viewpager);
         final boolean showNow = mSettings.toggleShowExtraKeys(TermuxActivity.this);
@@ -334,6 +929,51 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         }
     }
 
+    private void updateLineView() {
+        if (lineView.getVisibility() == View.VISIBLE) {
+            TerminalSession session = getCurrentTermSession();
+            if (session == null) { return; }
+            TerminalEmulator emulator = session.getEmulator();
+            if (emulator == null) { return; }
+
+            int cursorRow = emulator.getCursorRow();
+            String previousLine = (cursorRow == 0) ? "" : emulator.getPreviousLine();
+            String currentLine = emulator.getCurrentLine();
+            int cursorCol = previousLine.length() + emulator.getCursorCol();
+
+            Log.d("TERMUX_ACTIVITY", "currentLine.length()="+currentLine.length()+", emulator.getCursorCol()="+emulator.getCursorCol());
+            while (currentLine.length() <= emulator.getCursorCol()) {
+                currentLine += " ";
+                Log.d("TERMUX_ACTIVITY", "while: currentLine.length()="+currentLine.length()+", emulator.getCursorCol()="+emulator.getCursorCol());
+            }
+                
+            String text = previousLine;
+            if (previousLine.length() > 0) {
+                text += "\n\r";
+                cursorCol += 2;
+            }
+            text += currentLine;
+                
+            Log.d("TERMUX_ACTIVITY", "previousLine='"+previousLine+"'");
+            Log.d("TERMUX_ACTIVITY", "currentLine='"+currentLine+"'");
+            Log.d("TERMUX_ACTIVITY", "text='"+text+"'");
+            Log.d("TERMUX_ACTIVITY", "row="+emulator.getCursorRow()+", col="+emulator.getCursorCol());
+            Log.d("TERMUX_ACTIVITY", "cursorCol="+cursorCol);
+                
+            SpannableStringBuilder spannable = new SpannableStringBuilder(text);
+            // TODO make colors configurable
+            spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, text.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                
+            // TODO sometimes (not sure when) I have seen the span be outside the length range. :( Really shouldn't happen with above
+            // changing the current line with extra spaces at end.
+            if (text.length() > 0) {
+                spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), cursorCol, cursorCol + 1, Spannable.SPAN_POINT_POINT);
+                spannable.setSpan(new ForegroundColorSpan(Color.BLACK), cursorCol, cursorCol + 1, Spannable.SPAN_POINT_POINT);
+            }
+            lineView.setText(spannable);
+        }
+    }
+    
     /**
      * Part of the {@link ServiceConnection} interface. The service is bound with
      * {@link #bindService(Intent, ServiceConnection, int)} in {@link #onCreate(Bundle)} which will cause a call to this
@@ -347,7 +987,10 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             @Override
             public void onTextChanged(TerminalSession changedSession) {
                 if (!mIsVisible) return;
-                if (getCurrentTermSession() == changedSession) mTerminalView.onScreenUpdated();
+                if (getCurrentTermSession() == changedSession) {
+                    mTerminalView.onScreenUpdated();
+                    updateLineView();
+                }
             }
 
             @Override
@@ -928,5 +1571,4 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             switchToSession(service.getSessions().get(index));
         }
     }
-
 }

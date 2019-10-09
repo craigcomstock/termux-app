@@ -402,12 +402,17 @@ public final class TerminalEmulator {
      * @param length the number of bytes in the array to process
      */
     public void append(byte[] buffer, int length) {
+	// going to log here just to see what the TerminalEmulator deals with. May be a bad idea (log spam) but oh well.
+	//Log.e(EmulatorDebug.LOG_TAG, "craig");
+	//System.out.println("CRAIG, TemrinalEmulator.append() length="+length+", buffer="+new String(buffer));
+	// that was interesting. Might just get "everything" but still I'm looking for the current line (full line) and the previous
+	//	Log.e(EmulatorDebug.LOG_TAG, "TerminalEmulator.append(buffer="+Arrays.toString(buffer)+", length="+length+")");
         for (int i = 0; i < length; i++)
             processByte(buffer[i]);
     }
 
     private void processByte(byte byteToProcess) {
-        if (mUtf8ToFollow > 0) {
+	 if (mUtf8ToFollow > 0) {
             if ((byteToProcess & 0b11000000) == 0b10000000) {
                 // 10xxxxxx, a continuation byte.
                 mUtf8InputBuffer[mUtf8Index++] = byteToProcess;
@@ -2322,6 +2327,63 @@ public final class TerminalEmulator {
 
     public String getSelectedText(int x1, int y1, int x2, int y2) {
         return mScreen.getSelectedText(x1, y1, x2, y2);
+    }
+
+    public String getLineAt(int row) {
+        System.out.println("getLineAt("+row+")");
+        int startRow = row;
+        int endRow = row;
+        int firstRow = -mScreen.getActiveTranscriptRows();
+
+        System.out.println("mColumns="+mColumns);
+        System.out.println("startRow="+startRow+", firstRow="+firstRow+", line='"+mScreen.getSelectedText(0, startRow, mColumns, startRow)+"'");
+        if (startRow > firstRow) {
+            System.out.println("lineWrap("+(startRow-1)+")="+mScreen.getLineWrap(startRow-1));
+        }
+
+        while (startRow > firstRow && mScreen.getLineWrap(startRow-1)) {
+            startRow--;
+            System.out.println("while: startRow="+startRow+", firstRow="+firstRow+", line='"+mScreen.getSelectedText(0, startRow, mColumns, startRow)+"'");
+            if (startRow > firstRow) {
+                System.out.println("while: lineWrap("+(startRow-1)+")="+mScreen.getLineWrap(startRow-1));
+            } else {
+                System.out.println("while: startRow("+startRow+") <= firstRow("+firstRow+")");
+            }
+        }
+        // what is the max number of rows?
+        System.out.println("mRows="+mRows);
+        System.out.println("endRow="+endRow+", linewrap?"+mScreen.getLineWrap(endRow));
+        while (endRow < mRows && mScreen.getLineWrap(endRow)) {
+            endRow++;
+            System.out.println("while: endRow="+endRow+", linewrap?"+mScreen.getLineWrap(endRow));
+        }
+        return mScreen.getSelectedText(0, startRow, mColumns, endRow);
+    }
+
+    public String getCurrentLine() {
+        return getLineAt(mCursorRow);
+    }
+    
+    public String getPreviousLine() {
+        System.out.println("getPreviousLine()");
+        int row = mCursorRow - 1;
+        int firstRow = -mScreen.getActiveTranscriptRows();
+        if (row < firstRow) {
+            return "";  // no previous line exists
+        }
+
+        // so if the row previous to current row is not line wrapped, it is
+        // part of the previous line
+        System.out.println("row="+row+", line='"+mScreen.getSelectedText(0, row, mColumns, row)+"'");
+        System.out.println("lineWrap("+(row)+")="+mScreen.getLineWrap(row));
+        
+        while (row > firstRow && mScreen.getLineWrap(row)) {
+            row--;
+            System.out.println("while: row="+row+", line='"+mScreen.getSelectedText(0, row, mColumns, row)+"'");
+            System.out.println("while: lineWrap("+(row)+")="+mScreen.getLineWrap(row));
+        }
+
+        return getLineAt(row);
     }
 
     /** Get the terminal session's title (null if not set). */

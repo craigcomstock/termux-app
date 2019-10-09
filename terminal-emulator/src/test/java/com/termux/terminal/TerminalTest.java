@@ -294,4 +294,107 @@ public class TerminalTest extends TerminalTestCase {
         withTerminalSized(11, 2).enterString("01234567890\033[44m\r\tXX").assertLinesAre("01234567XX0", "           ");
     }
 
+    public void xtestCurrentLine() {
+        withTerminalSized(3, 3).enterString("abc");
+        //        enterString("\10"); // newline?
+        //        enterString("def");
+        assertCursorAt(0,2);
+        assertEquals("abc", mTerminal.getSelectedText(0,0,2,0));
+        assertEquals("abc", mTerminal.getCurrentLine());
+
+        enterString("def");
+        assertEquals("abcdef", mTerminal.getCurrentLine());
+
+        enterString("ghi");
+        assertEquals("abcdefghi", mTerminal.getCurrentLine());
+
+        enterString("jkl");
+        assertEquals("defghijkl", mTerminal.getCurrentLine());
+
+        // COOL! This all works so far! :) Though, I kind of want the 'abc' that is still part
+        // of the line but just off the terminal. :(
+        // Could we get that back somehow?
+        // For me I essentially want an infinitely wide terminal. Hmm.
+        // This case would almost CERTAINLY not happen much.
+        enterString("\n\rx");
+        assertEquals("x", mTerminal.getCurrentLine());
+        enterString("\n\r");
+        assertEquals("", mTerminal.getCurrentLine());
+
+        // and now for the real fun: build up a line with three console lines, and move to the
+        // middle line with the cursor
+        enterString("abcdefghi");
+        placeCursorAndAssert(1,1);
+        assertEquals("abcdefghi", mTerminal.getCurrentLine());
+        
+        // 	protected TerminalTestCase placeCursorAndAssert(int row, int col) {)
+    }
+
+    public void testCurrentLineInTranscript() {
+        System.out.println("testCurrentLineInTranscript()");
+        withTerminalSized(3, 3).enterString("abc");
+        enterString("def");
+        enterString("ghi");
+        enterString("jkl");
+        enterString("mno");
+        System.out.println("cursor at row="+mTerminal.getCursorRow()+", col="+mTerminal.getCursorCol());
+        System.out.println("active transcript rows="+mTerminal.getScreen().getActiveTranscriptRows());
+        System.out.println("transcript text='"+mTerminal.getScreen().getTranscriptText()+"'");
+        System.out.println("transcript text without joined lines='"+mTerminal.getScreen().getTranscriptTextWithoutJoinedLines()+"'");
+        // two active transcript rows
+        // transcript text='abcdefghijklmno'
+        // transcript without joined lines is just what you would expect:
+        // abc
+        // def
+        // ghi
+        // jkl
+        // mno
+
+        System.out.println("text 0, 0, 2, 2, joined lines='"+mTerminal.getSelectedText(0, 0, 2, 2)+"'");
+        System.out.println("text 0, 0, 2, 2, un-joined lines='"+mTerminal.getScreen().getSelectedText(0, 0, 2, 2, false)+"'");
+        String currentLine = mTerminal.getCurrentLine();
+        System.out.println("current line='"+currentLine+"'");
+        assertEquals("abcdefghijklmno", currentLine);
+        // without placing the cursor, it is as 2,2
+
+        placeCursorAndAssert(0, 0);
+        System.out.println("cursor at row="+mTerminal.getCursorRow()+", col="+mTerminal.getCursorCol());
+        currentLine = mTerminal.getCurrentLine();
+        System.out.println("current line='"+currentLine+"'");
+        assertEquals("abcdefghijklmno", currentLine);
+    }
+
+    public void testGetPreviousLine() {
+        System.out.println("testGetPreviousLine()");
+        withTerminalSized(3, 3);
+        enterString("abc");
+        enterString("de\n\r");
+        enterString("gh");
+        assertEquals("gh", mTerminal.getCurrentLine());
+        assertEquals("abcde", mTerminal.getPreviousLine());
+    }
+
+    public void testGetCurrentLineWithSpaces() {
+        System.out.println("testGetCurrentLineWithSpaces()");
+        withTerminalSized(3, 3);
+        enterString("a ");
+        // In TerminalBuffer getSelectedText() if the line is not wrapped
+        // like the current line will likely not be
+        // then trailing spaces are removed
+        assertEquals("a", mTerminal.getCurrentLine());
+    }
+
+    public void xtestGetPreviousLineAfterCtrlL() {
+        System.out.println("testGetPreviousLineAfterCtrlL()");
+        withTerminalSized(3, 3);
+        enterString("ab\n\r");
+        enterString("cd\n\r");
+        enterString("ef\n\r");
+        enterString("gh\n\r");
+        System.out.println("cursor is at row="+mTerminal.getCursorRow()+", col="+mTerminal.getCursorCol());
+        enterString("ij");
+        enterString("\u000c");
+        assertEquals("", mTerminal.getPreviousLine()); 
+        assertEquals("ij", mTerminal.getCurrentLine());
+    }
 }

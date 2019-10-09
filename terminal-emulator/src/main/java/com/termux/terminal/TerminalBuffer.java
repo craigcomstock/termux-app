@@ -141,6 +141,15 @@ public final class TerminalBuffer {
         mLines[externalToInternalRow(row)].mLineWrap = false;
     }
 
+    // for TerminalEmulator.getCurrentLine() aka gesture-termux-app 2-line mode
+    public int getRowCount() {
+        return mScreenRows;
+    }
+
+    public int getColumnCount() {
+        return mColumns;
+    }
+
     /**
      * Resize the screen which this transcript backs. Currently, this only works if the number of columns does not
      * change or the rows expand (that is, it only works when shrinking the number of rows).
