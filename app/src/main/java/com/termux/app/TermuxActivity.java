@@ -15,8 +15,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
@@ -35,13 +38,16 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewGroup.LayoutParams;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -57,6 +63,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -131,6 +138,14 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         new AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION).build()).build();
     int mBellSoundId;
+
+    // gesture graphics things
+    RelativeLayout gestureLayout;
+    Paint paint;
+    View view;
+    Path path2;
+    Bitmap bitmap;
+    Canvas canvas;
 
     private final BroadcastReceiver mBroadcastReceiever = new BroadcastReceiver() {
         @Override
@@ -208,6 +223,20 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         mSettings = new TermuxPreferences(this);
 
         setContentView(R.layout.drawer_layout);
+	gestureLayout = (RelativeLayout) findViewById(R.id.gesturelayout);
+	view = new SketchSheetView(TermuxActivity.this);
+	paint = new Paint();
+	path2 = new Path();
+	gestureLayout.addView(view, new LayoutParams(
+						     RelativeLayout.LayoutParams.MATCH_PARENT,
+						     RelativeLayout.LayoutParams.MATCH_PARENT));
+	paint.setDither(true);
+	paint.setColor(Color.parseColor("#FF6600"));
+	paint.setStyle(Paint.Style.STROKE);
+	paint.setStrokeJoin(Paint.Join.ROUND);
+	paint.setStrokeCap(Paint.Cap.ROUND);
+	paint.setStrokeWidth(8);
+	
         mTerminalView = findViewById(R.id.terminal_view);
         mTerminalView.setOnKeyListener(new TermuxViewClient(this));
 
@@ -315,6 +344,64 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         mBellSoundId = mBellSoundPool.load(this, R.raw.bell, 1);
     }
 
+    class SketchSheetView extends View {
+	public SketchSheetView(Context context) {
+	    super(context);
+	    bitmap = Bitmap.createBitmap(820,480,Bitmap.Config.ARGB_4444);
+	    canvas = new Canvas(bitmap);
+	    //	    this.setBackgroundColor(Color.WHITE);
+	}
+
+	private ArrayList<DrawingClass> DrawingClassArrayList = new ArrayList<DrawingClass>();
+
+	@Override
+	public boolean onTouchEvent(MotionEvent event) {
+	    DrawingClass pathWithPaint = new DrawingClass();
+	    canvas.drawPath(path2, paint);
+	    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+		path2.reset(); // each gesture is separate
+		path2.moveTo(event.getX(), event.getY());
+		//		path2.moveTo(event.getX(), event.getY());
+		//		path2.lineTo(event.getX(), event.getY());
+	    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+		path2.lineTo(event.getX(), event.getY());
+		pathWithPaint.setPath(path2);
+		pathWithPaint.setPaint(paint);
+		DrawingClassArrayList.add(pathWithPaint);
+	    }
+	    invalidate();
+	    return true;
+	}
+
+	@Override
+	protected void onDraw(Canvas canvas) {
+	    super.onDraw(canvas);
+	    if (DrawingClassArrayList.size() > 0) {
+		canvas.drawPath(
+				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPath(),
+				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPaint());
+	    }
+	}
+    }
+
+    public class DrawingClass {
+	Path DrawingClassPath;
+	Paint DrawingClassPaint;
+
+	public Path getPath() {
+	    return DrawingClassPath;
+	}
+	public void setPath(Path path) {
+	    this.DrawingClassPath = path;
+	}
+	public Paint getPaint() {
+	    return DrawingClassPaint;
+	}
+	public void setPaint(Paint paint) {
+	    this.DrawingClassPaint = paint;
+	}
+    }  
+    
     void toggleShowExtraKeys() {
         final ViewPager viewPager = findViewById(R.id.viewpager);
         final boolean showNow = mSettings.toggleShowExtraKeys(TermuxActivity.this);

@@ -24,6 +24,14 @@
               android:focusableInTouchMode="true"
               android:scrollbarThumbVertical="@drawable/terminal_scroll_shape"
               android:scrollbars="vertical" />
+
+	  <RelativeLayout
+	      android:id="@+id/gesturelayout"
+	      android:layout_weight="90"
+	      android:layout_width="fill_parent"
+	      android:layout_height="wrap_content"
+	      android:background="@android:color/transparent">
+          </RelativeLayout>
 	  
 	</FrameLayout>
 
