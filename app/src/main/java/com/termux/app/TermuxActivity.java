@@ -146,7 +146,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
     Path path2;
     Bitmap bitmap;
     Canvas canvas;
-
+	
     private final BroadcastReceiver mBroadcastReceiever = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -354,23 +354,210 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 
 	private ArrayList<DrawingClass> DrawingClassArrayList = new ArrayList<DrawingClass>();
 
+	// gesture stuff
+	class TsEvent {
+	    public int x;
+	    public int y;
+	    public int type;
+	}
+	TsEvent[] events = new TsEvent[300];
+	
+	int slash, dot, shift, control, escape, alt, caps = 0;
+	
+	class Point {
+	    public int x;
+	    public int y;
+	}
+	
+	class Gesture {
+	    public int minx = 0;
+	    public int maxx = 0 ;
+	    public int miny = 0;
+	    public int maxy = 0;
+	    public int numPoints = 0;
+	    public Point[] points = new Point[300];
+	}
+	Gesture gs = new Gesture();
+	int gi = 0;
+	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 	    DrawingClass pathWithPaint = new DrawingClass();
 	    canvas.drawPath(path2, paint);
 	    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+		int x = (int)event.getX();
+		int y = (int)event.getY();
+		
 		path2.reset(); // each gesture is separate
-		path2.moveTo(event.getX(), event.getY());
+		path2.moveTo(x, y);
+		path2.lineTo(x+1, y+1);
+		pathWithPaint.setPath(path2);
+		pathWithPaint.setPaint(paint);
+		DrawingClassArrayList.add(pathWithPaint);
+
+		// gesture stuff
+		updateMax(gs, x, y);
+		gs.points[gi] = new Point();
+		gs.points[gi].x = x;
+		gs.points[gi].y = y;
+		gi++;
 		//		path2.moveTo(event.getX(), event.getY());
 		//		path2.lineTo(event.getX(), event.getY());
+	    } else if (event.getAction() == MotionEvent.ACTION_UP) {
+		gs.numPoints = gi;
+		
+		// TODO make dynamic based on discoverable information
+		String output = handleGesture(gs, 600, 800, 200);
+		Log.e(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
+		// somehow send the output to another layer of large letters
+		// maybe even changing size letters to max out the display!
+		gs = new Gesture();
+		gi = 0;
 	    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+		int x = (int)event.getX();
+		int y = (int)event.getY();
+		
 		path2.lineTo(event.getX(), event.getY());
 		pathWithPaint.setPath(path2);
 		pathWithPaint.setPaint(paint);
 		DrawingClassArrayList.add(pathWithPaint);
+
+		updateMax(gs, x, y);
+		gs.points[gi] = new Point();
+		gs.points[gi].x = x;
+		gs.points[gi].y = y;
+		gi++;
 	    }
 	    invalidate();
 	    return true;
+	}
+
+	void updateMax(Gesture gs, int x, int y) {
+		if (x > gs.maxx) {
+		    gs.maxx = x;
+		}
+		if (x < gs.minx) {
+		    gs.minx = x;
+		}
+		if (y > gs.maxy) {
+		    gs.maxy = y;
+		}
+		if (y < gs.maxy) {
+		    gs.miny = y;
+		}
+	}
+
+	// TODO UTF-8, other character set support? Use a String instead? auto-support for such things?
+	String handleGesture(Gesture gs, int screen_width, int screen_height, int minimum_chunk_size) {
+	    String toput = "";
+	    int key_x[] = new int[25];
+	    int key_y[] = new int[25];
+	    int i, kxi, kyi;
+	    int sx, sy;
+	    int tx, ty;
+	    int rx, ry;
+	    i = 0;
+	    kxi = kyi = -1;
+	    sx = (gs.maxx - gs.minx) / 3;
+	    sy = (gs.maxy - gs.miny) / 3;
+	    if (sx < minimum_chunk_size) {
+		sx = minimum_chunk_size;
+	    }
+	    if (sy < minimum_chunk_size) {
+		sy = minimum_chunk_size;
+	    }
+	    int nw, ne, se, sw;
+	    nw = ne = se = sw = 0;
+	    for (; i < gs.numPoints; i++) {
+		rx = gs.points[i].x - gs.minx;
+		tx = rx / sx;
+		ry = gs.points[i].y - gs.miny;
+		ty = ry / sy;
+		if (tx == 3) {
+		    tx = 2;
+		}
+		if (ty == 3) {
+		    ty = 2;
+		}
+		if (kxi == -1 || key_x[kxi] != tx) {
+		    key_x[++kxi] = tx;
+		}
+		if (kyi == -1 || key_y[kyi] != ty) {
+		    key_y[++kyi] = ty;
+		}
+
+		if (tx == 0 && ty == 0) {
+		    nw = 1;
+		}
+		if (tx == 2 && ty == 0) {
+		    ne = 1;
+		}
+		if (tx == 2 && ty == 2) {
+		    se = 1;
+		}
+		if (tx == 0 && ty == 2) {
+		    sw = 1;
+		}
+	    }
+	    if (kxi == -1) {
+		key_x[++kxi] = 0;
+	    }
+	    if (kyi == -1) {
+		key_y[++kyi] = 0;
+	    }
+	    String tmp, key = "";
+	    if (dot == 1) {
+		key += ".";
+		dot = 0;
+	    }
+	    if (slash == 1) {
+		key += "/";
+		slash = 0;
+	    }
+
+	    i = 0;
+	    for (; i <= kxi; i++) {
+		key += key_x[i];
+	    }
+	    key += ":";
+	    i = 0;
+	    for (; i <= kyi; i++) {
+		key += key_y[i];
+	    }
+	    if (key.equals("0:0") || key.equals(".0:0")) {
+		if (gs.maxy > screen_height - 2 * minimum_chunk_size) {
+		    key += "s";
+		}
+		if (gs.miny < 2 * minimum_chunk_size) {
+		    key += "n";
+		}
+		if (gs.maxx > screen_width - 2 * minimum_chunk_size) {
+		    key += "e";
+		}
+		if (gs.minx < 2 * minimum_chunk_size) {
+		    key += "w";
+		}
+	    }
+
+	    if (nw == 1 || ne == 1 || sw == 1 || se == 1) {
+		key += "x";
+		if (nw == 1) {
+		    key += "1";
+		}
+		if (ne == 1) {
+		    key += "2";
+		}
+		if (se == 1) {
+		    key += "3";
+		}
+		if (sw == 1) {
+		    key += "4";
+		}
+	    }
+
+	    // at this point we have our key, I think, let's just print it out and see if that much works. :+1:
+	    Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), key='"+key+"'");
+	    return toput;
 	}
 
 	@Override
