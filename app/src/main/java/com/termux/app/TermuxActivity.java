@@ -146,10 +146,13 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
     Path path2;
     Bitmap bitmap;
     Canvas canvas;
+    Properties gestures;
 	
     private final BroadcastReceiver mBroadcastReceiever = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+	    Log.e("TERMUX_ACTIVITY", "onReceive, mIsVisible="+mIsVisible);
+	    
             if (mIsVisible) {
                 String whatToReload = intent.getStringExtra(RELOAD_STYLE_ACTION);
                 if ("storage".equals(whatToReload)) {
@@ -157,6 +160,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
                         TermuxInstaller.setupStorageSymlinks(TermuxActivity.this);
                     return;
                 }
+		loadGestures();
                 checkForFontAndColors();
                 mSettings.reloadFromProperties(TermuxActivity.this);
 
@@ -166,6 +170,21 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             }
         }
     };
+
+    void loadGestures() {
+	try {
+	    // copy gesture.conf from distribution path to user home dir? Or sdcard?
+	    @SuppressLint("SdCardPath") File gesturesFile = new File("/sdcard/gestures.conf");
+	    gestures = new Properties();
+	    if (gesturesFile.isFile()) {
+		try (InputStream in = new FileInputStream(gesturesFile)) {
+		    gestures.load(in);
+		}
+	    }
+	} catch (Exception e) {
+            Log.e(EmulatorDebug.LOG_TAG, "Error in loadGestures()", e);
+        }
+    }   
 
     void checkForFontAndColors() {
         try {
@@ -344,6 +363,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         mBellSoundId = mBellSoundPool.load(this, R.raw.bell, 1);
     }
 
+    // TODO refactor as a GestureView class :+1:
     class SketchSheetView extends View {
 	public SketchSheetView(Context context) {
 	    super(context);
