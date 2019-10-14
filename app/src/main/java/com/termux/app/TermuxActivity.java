@@ -379,6 +379,14 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	}
 	Gesture gs = new Gesture();
 	int gi = 0;
+	int view_width, view_height = 0;
+
+	@Override
+	protected void onSizeChanged(int xNew, int yNew, int xOld, int yOld) {
+	    super.onSizeChanged(xNew, yNew, xOld, yOld);
+	    view_width = xNew;
+	    view_height = yNew;
+	}
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
@@ -387,6 +395,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	    if (event.getAction() == MotionEvent.ACTION_DOWN) {
 		int x = (int)event.getX();
 		int y = (int)event.getY();
+		Log.e("GESTURE", "ACTION_DOWN, x="+x+", y="+y);
 		
 		path2.reset(); // each gesture is separate
 		path2.moveTo(x, y);
@@ -395,7 +404,13 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		pathWithPaint.setPaint(paint);
 		DrawingClassArrayList.add(pathWithPaint);
 
-		// gesture stuff
+		// init a new gesture
+		gs = new Gesture();
+		gi = 0;
+		gs.minx = view_width;
+		gs.miny = view_height;
+
+		// update things as normal
 		updateMax(gs, x, y);
 		gs.points[gi] = new Point();
 		gs.points[gi].x = x;
@@ -406,8 +421,8 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	    } else if (event.getAction() == MotionEvent.ACTION_UP) {
 		gs.numPoints = gi;
 		
-		// TODO make dynamic based on discoverable information
-		String output = handleGesture(gs, 600, 800, 200);
+		// for minimum chunk, somehow get physical measurement of a finger width :+1:
+		String output = handleGesture(gs, view_width, view_height, view_width / 6);
 		Log.e(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
 		// somehow send the output to another layer of large letters
 		// maybe even changing size letters to max out the display!
@@ -416,6 +431,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 		int x = (int)event.getX();
 		int y = (int)event.getY();
+		Log.e("GESTURE", "ACTION_MOVE, x="+x+", y="+y);
 		
 		path2.lineTo(event.getX(), event.getY());
 		pathWithPaint.setPath(path2);
@@ -442,13 +458,15 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		if (y > gs.maxy) {
 		    gs.maxy = y;
 		}
-		if (y < gs.maxy) {
+		if (y < gs.miny) {
 		    gs.miny = y;
 		}
 	}
 
 	// TODO UTF-8, other character set support? Use a String instead? auto-support for such things?
 	String handleGesture(Gesture gs, int screen_width, int screen_height, int minimum_chunk_size) {
+	    Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), screen_width="+screen_width+", screen_height="+screen_height+", minimum_chunk_size="+minimum_chunk_size);
+
 	    String toput = "";
 	    int key_x[] = new int[25];
 	    int key_y[] = new int[25];
@@ -468,6 +486,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	    }
 	    int nw, ne, se, sw;
 	    nw = ne = se = sw = 0;
+	    Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), numPoints="+gs.numPoints+", minx="+gs.minx+", maxx="+gs.maxx+", miny="+gs.miny+", maxy="+gs.maxy+", sx="+sx+", sy="+sy);
 	    for (; i < gs.numPoints; i++) {
 		rx = gs.points[i].x - gs.minx;
 		tx = rx / sx;
@@ -479,6 +498,8 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		if (ty == 3) {
 		    ty = 2;
 		}
+		Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), rx="+rx+", tx="+tx+", ry="+ry+", ty="+ty);
+		
 		if (kxi == -1 || key_x[kxi] != tx) {
 		    key_x[++kxi] = tx;
 		}
@@ -525,16 +546,16 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		key += key_y[i];
 	    }
 	    if (key.equals("0:0") || key.equals(".0:0")) {
-		if (gs.maxy > screen_height - 2 * minimum_chunk_size) {
+		if (gs.maxy > screen_height - minimum_chunk_size) {
 		    key += "s";
 		}
-		if (gs.miny < 2 * minimum_chunk_size) {
+		if (gs.miny < minimum_chunk_size) {
 		    key += "n";
 		}
-		if (gs.maxx > screen_width - 2 * minimum_chunk_size) {
+		if (gs.maxx > screen_width - minimum_chunk_size) {
 		    key += "e";
 		}
-		if (gs.minx < 2 * minimum_chunk_size) {
+		if (gs.minx < minimum_chunk_size) {
 		    key += "w";
 		}
 	    }
