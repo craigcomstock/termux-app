@@ -388,14 +388,15 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	    public int x;
 	    public int y;
 	}
-	
+
+	int MAX_POINTS = 300;
 	class Gesture {
 	    public int minx = 0;
 	    public int maxx = 0 ;
 	    public int miny = 0;
 	    public int maxy = 0;
 	    public int numPoints = 0;
-	    public Point[] points = new Point[300];
+	    public Point[] points = new Point[MAX_POINTS]; // how very C of me. :p but a limit is good
 	}
 	Gesture gs = new Gesture();
 	int gi = 0;
@@ -421,6 +422,9 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		gs.points[gi].x = x;
 		gs.points[gi].y = y;
 		gi++;
+		if (gi > MAX_POINTS - 1) {
+		    gi--; // just keep pushing the last point into the last slot
+		}
 		//		path2.moveTo(event.getX(), event.getY());
 		//		path2.lineTo(event.getX(), event.getY());
 	    } else if (event.getAction() == MotionEvent.ACTION_UP) {
@@ -447,6 +451,9 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		gs.points[gi].x = x;
 		gs.points[gi].y = y;
 		gi++;
+		if (gi > MAX_POINTS - 1) {
+		    gi--; // just keep pushing the last point into the last slot
+		}
 	    }
 	    invalidate();
 	    return true;
@@ -470,8 +477,9 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	// TODO UTF-8, other character set support? Use a String instead? auto-support for such things?
 	String handleGesture(Gesture gs, int screen_width, int screen_height, int minimum_chunk_size) {
 	    String toput = "";
-	    int key_x[] = new int[25];
-	    int key_y[] = new int[25];
+	    int MAX_KEYS = 50;
+	    int key_x[] = new int[MAX_KEYS];
+	    int key_y[] = new int[MAX_KEYS];
 	    int i, kxi, kyi;
 	    int sx, sy;
 	    int tx, ty;
@@ -501,9 +509,15 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		}
 		if (kxi == -1 || key_x[kxi] != tx) {
 		    key_x[++kxi] = tx;
+		    if (kxi > MAX_KEYS - 2) {
+			kxi = MAX_KEYS - 2;
+		    }
 		}
 		if (kyi == -1 || key_y[kyi] != ty) {
 		    key_y[++kyi] = ty;
+		    if (kyi > MAX_KEYS - 2) {
+			kyi = MAX_KEYS - 2;
+		    }
 		}
 
 		if (tx == 0 && ty == 0) {
@@ -521,9 +535,15 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	    }
 	    if (kxi == -1) {
 		key_x[++kxi] = 0;
+		if (kxi > MAX_KEYS - 2) {
+		    kxi = MAX_KEYS - 2;
+		}
 	    }
 	    if (kyi == -1) {
 		key_y[++kyi] = 0;
+		if (kyi > MAX_KEYS - 2) {
+		    kyi = MAX_KEYS - 2;
+		}
 	    }
 	    String tmp, key = "";
 	    if (dot == 1) {
