@@ -33,6 +33,7 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.StyleSpan;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
@@ -60,9 +61,11 @@ import com.termux.terminal.TerminalSession.SessionChangedCallback;
 import com.termux.terminal.TextStyle;
 import com.termux.view.TerminalView;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
@@ -144,8 +147,10 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 
     // gesture graphics things
     RelativeLayout gestureLayout;
+    RelativeLayout letterLayout; // for single big letter display (and maybe also morse code in-progress
     Paint paint;
-    View view;
+    View gestureView;
+    TextView letterView;
     Path path2;
     Bitmap bitmap;
     Canvas canvas;
@@ -210,8 +215,28 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	    }
 	    gestures = new Properties();
 	    if (gesturesFile.isFile()) {
-		try (InputStream in = new FileInputStream(gesturesFile)) {
-		    gestures.load(in);
+		BufferedReader reader = null;
+		try {
+		    reader = new BufferedReader(new FileReader(gesturesFile));
+		    String line = reader.readLine();
+		    while (line != null) {
+			if (line.startsWith("#")) {
+			    Log.e(EmulatorDebug.LOG_TAG, "comment line: "+line);
+			} else {
+			    String parts[] = line.split(" ");
+			    if (parts.length != 2) {
+				Log.e(EmulatorDebug.LOG_TAG, "bad line: "+line);
+			    } else {
+				Log.e(EmulatorDebug.LOG_TAG, "key: "+parts[0]+", value: "+parts[1]);
+				gestures.setProperty(parts[0],parts[1]);
+			    }
+			}
+			line = reader.readLine();
+		    }
+		} finally {
+		    if (reader != null) {
+			reader.close();
+		    }
 		}
 	    }
 	    Log.e(EmulatorDebug.LOG_TAG, "gestures="+gestures);
@@ -277,10 +302,15 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 
         setContentView(R.layout.drawer_layout);
 	gestureLayout = (RelativeLayout) findViewById(R.id.gesturelayout);
-	view = new SketchSheetView(TermuxActivity.this);
+	letterLayout = (RelativeLayout) findViewById(R.id.letterlayout);
+	gestureView = new SketchSheetView(TermuxActivity.this);
+	letterView = new TextView(TermuxActivity.this);
 	paint = new Paint();
 	path2 = new Path();
-	gestureLayout.addView(view, new LayoutParams(
+	gestureLayout.addView(gestureView, new LayoutParams(
+						     RelativeLayout.LayoutParams.MATCH_PARENT,
+						     RelativeLayout.LayoutParams.MATCH_PARENT));
+	letterLayout.addView(letterView, new LayoutParams(
 						     RelativeLayout.LayoutParams.MATCH_PARENT,
 						     RelativeLayout.LayoutParams.MATCH_PARENT));
 	paint.setDither(true);
@@ -652,6 +682,32 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 
 	    // at this point we have our key, I think, let's just print it out and see if that much works. :+1:
 	    Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), key='"+key+"'");
+
+	    // try to send this out to the letterView :)
+	    Log.e(EmulatorDebug.LOG_TAG, "letterView current size in pixels: "+letterView.getTextSize());
+	    toput = gestures.getProperty(key);
+	    letterView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
+	    if (toput != null) {
+		if (toput.length() == 1) {
+		    letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 160);
+		    // in this case we send it to the session
+		    // actually I need to send other things eventually... like tab/enter/etc :(
+		    TerminalSession session = getCurrentTermSession();
+		    if (session != null) {
+			if (session.isRunning()) {
+			    session.write(toput);
+			}
+		    }
+		} else {
+		    letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 80);
+		}
+		letterView.setTextColor(Color.GREEN);
+		letterView.setText(toput);
+	    } else {
+		letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
+		letterView.setTextColor(Color.RED);
+		letterView.setText("key not found: "+key);
+	    }
 	    return toput;
 	}
 
