@@ -26,6 +26,7 @@ import android.media.SoundPool;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import android.text.SpannableString;
 import android.text.Spanned;
@@ -61,7 +62,9 @@ import com.termux.view.TerminalView;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -160,7 +163,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
                         TermuxInstaller.setupStorageSymlinks(TermuxActivity.this);
                     return;
                 }
-		loadGestures();
+		loadGestureConf();
                 checkForFontAndColors();
                 mSettings.reloadFromProperties(TermuxActivity.this);
 
@@ -171,16 +174,47 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         }
     };
 
-    void loadGestures() {
+    void loadGestureConf() {
+	Log.e(EmulatorDebug.LOG_TAG, "loadGestureConf()");
 	try {
-	    // copy gesture.conf from distribution path to user home dir? Or sdcard?
-	    @SuppressLint("SdCardPath") File gesturesFile = new File("/sdcard/gestures.conf");
+
+	    String gesturesFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/gesture.conf";
+	    Log.e(EmulatorDebug.LOG_TAG, "gesturesFilePath="+gesturesFilePath);
+	    File gesturesFile = new File(gesturesFilePath);
+	    Log.e(EmulatorDebug.LOG_TAG, "gesturesFile="+gesturesFile);
+
+	    // if gesture.conf isn't at /sdcard/gesture.conf then copy from resources
+	    if (!gesturesFile.exists()) {
+		InputStream is = null;
+		OutputStream os = null;
+		try {
+		// copy from resources
+		    is = getResources().openRawResource(R.raw.gesture); // TODO extension is .conf? matters?
+		    os = new FileOutputStream(gesturesFile);
+		    byte[] buffer = new byte[1024];
+		    int length;
+		    while ((length = is.read(buffer)) > 0) {
+			os.write(buffer, 0, length);
+		    }
+		} catch(Exception e) {
+		    e.printStackTrace();
+		    Log.e(EmulatorDebug.LOG_TAG, "copy raw resource gesture.conf failed: "+e);
+		} finally {
+		    if (is != null) {
+			is.close();
+		    }
+		    if (os != null) {
+			os.close();
+		    }
+		}
+	    }
 	    gestures = new Properties();
 	    if (gesturesFile.isFile()) {
 		try (InputStream in = new FileInputStream(gesturesFile)) {
 		    gestures.load(in);
 		}
 	    }
+	    Log.e(EmulatorDebug.LOG_TAG, "gestures="+gestures);
 	} catch (Exception e) {
             Log.e(EmulatorDebug.LOG_TAG, "Error in loadGestures()", e);
         }
@@ -1244,5 +1278,4 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             switchToSession(service.getSessions().get(index));
         }
     }
-
 }
