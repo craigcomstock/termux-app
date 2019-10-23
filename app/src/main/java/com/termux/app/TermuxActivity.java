@@ -446,7 +446,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	}
 	TsEvent[] events = new TsEvent[300];
 	
-	int slash, dot, shift, control, escape, alt, caps = 0;
+	boolean slash, dot, shift, control, escape, alt, caps = false;
 	
 	class Point {
 	    public int x;
@@ -631,13 +631,13 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		}
 	    }
 	    String tmp, key = "";
-	    if (dot == 1) {
+	    if (dot) {
 		key += ".";
-		dot = 0;
+		dot = false;
 	    }
-	    if (slash == 1) {
+	    if (slash) {
 		key += "/";
-		slash = 0;
+		slash = false;
 	    }
 
 	    i = 0;
@@ -688,6 +688,45 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	    toput = gestures.getProperty(key);
 	    letterView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
 	    if (toput != null) {
+		// first translate some special names to single character
+		if (toput.equals("enter")) {
+		    toput = "" + (char)0x0d;
+		} else if (toput.equals("tab")) {
+		    toput = "" + (char)0x09;
+		} else if (toput.equals("backspace")) {
+		    toput = "" + (char)0x08;
+		} else if (toput.equals("space")) {
+		    toput = " ";
+		} else if (toput.equals("dot")) {
+		    toput = ".";
+		    dot = !dot;
+		} else if (toput.equals("shift")) {
+		    if (shift && caps) {
+			caps = false; shift = false;
+		    } else if (shift && !caps) {
+			caps = true; shift = false;
+		    } else if (!shift && caps) {
+			shift = false; caps = false;
+		    } else {
+			shift = true;
+		    }
+		} else if (toput.equals("control")) {
+		    control = !control;
+		} else {
+		    if (toput.length() == 1) {
+			if (caps || shift) {
+			    toput = "" + (char)(toput.charAt(0) - 32);
+			}
+			if (shift && !caps) {
+			    shift = !shift;
+			}
+			if (control) {
+			    toput = "" + (char)(toput.charAt(0) - 96);
+			    control = !control;
+			}
+		    }
+		}
+		    
 		if (toput.length() == 1) {
 		    letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 160);
 		    // in this case we send it to the session
@@ -695,6 +734,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		    TerminalSession session = getCurrentTermSession();
 		    if (session != null) {
 			if (session.isRunning()) {
+			    // todo check that toput is "disaplayable" :)
 			    session.write(toput);
 			}
 		    }
