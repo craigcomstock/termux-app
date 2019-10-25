@@ -168,7 +168,10 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
                         TermuxInstaller.setupStorageSymlinks(TermuxActivity.this);
                     return;
                 }
-		loadGestureConf();
+		// in order for gesture.conf to get loaded/transferred from resources to storage
+		if (ensureStoragePermissionGranted()) {
+		    loadGestureConf();
+		}
                 checkForFontAndColors();
                 mSettings.reloadFromProperties(TermuxActivity.this);
 
@@ -182,7 +185,6 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
     void loadGestureConf() {
 	Log.e(EmulatorDebug.LOG_TAG, "loadGestureConf()");
 	try {
-
 	    String gesturesFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/gesture.conf";
 	    Log.e(EmulatorDebug.LOG_TAG, "gesturesFilePath="+gesturesFilePath);
 	    File gesturesFile = new File(gesturesFilePath);
@@ -510,10 +512,9 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		gs.numPoints = gi;
 		
 		// for minimum chunk, somehow get physical measurement of a finger width :+1:
-		String output = handleGesture(gs, view_width, view_height, view_width / 6);
+		// TODO add the minimum chunk ratio as a config in gesture.conf?
+		String output = handleGesture(gs, view_width, view_height, view_width / 8);
 		Log.e(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
-		// somehow send the output to another layer of large letters
-		// maybe even changing size letters to max out the display!
 		gs = new Gesture();
 		gi = 0;
 	    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
@@ -685,22 +686,36 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 
 	    // try to send this out to the letterView :)
 	    Log.e(EmulatorDebug.LOG_TAG, "letterView current size in pixels: "+letterView.getTextSize());
-	    toput = gestures.getProperty(key);
+	    
+	    if (gestures == null) {
+		// TODO this might slow down the first recog but how else to do it?
+		Log.e(EmulatorDebug.LOG_TAG, "gesture.conf not loaded, do it now");
+		if (ensureStoragePermissionGranted()) {
+		    loadGestureConf();
+		} else {
+		    Log.e(EmulatorDebug.LOG_TAG, "unable to get storage permission, can't load gesture, bailing");
+		    return "";
+		}
+	    }
+	    String value = gestures.getProperty(key);
+	    Log.e(EmulatorDebug.LOG_TAG, "value from gesture.conf: "+value);
 	    letterView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
-	    if (toput != null) {
+	    if (value != null) {
 		// first translate some special names to single character
-		if (toput.equals("enter")) {
+		if (value.equals("enter")) {
 		    toput = "" + (char)0x0d;
-		} else if (toput.equals("tab")) {
+		} else if (value.equals("tab")) {
 		    toput = "" + (char)0x09;
-		} else if (toput.equals("backspace")) {
+		} else if (value.equals("backspace")) {
 		    toput = "" + (char)0x08;
-		} else if (toput.equals("space")) {
+		} else if (value.equals("space")) {
 		    toput = " ";
-		} else if (toput.equals("dot")) {
-		    toput = ".";
+		} else if (value.equals("dot")) {
+		    if (dot) {
+			toput = ".";
+		    }
 		    dot = !dot;
-		} else if (toput.equals("shift")) {
+		} else if (value.equals("shift")) {
 		    if (shift && caps) {
 			caps = false; shift = false;
 		    } else if (shift && !caps) {
@@ -710,10 +725,12 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		    } else {
 			shift = true;
 		    }
-		} else if (toput.equals("control")) {
+		} else if (value.equals("control")) {
 		    control = !control;
 		} else {
-		    if (toput.length() == 1) {
+		    toput = value;
+		    
+		    if (value.length() == 1) {
 			if (caps || shift) {
 			    toput = "" + (char)(toput.charAt(0) - 32);
 			}
@@ -726,8 +743,10 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 			}
 		    }
 		}
+
+		Log.e(EmulatorDebug.LOG_TAG, "toput='"+toput+"', toput.length="+toput.length());
 		    
-		if (toput.length() == 1) {
+		if (toput.length() > 0) {
 		    letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 160);
 		    // in this case we send it to the session
 		    // actually I need to send other things eventually... like tab/enter/etc :(
