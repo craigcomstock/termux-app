@@ -513,7 +513,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 		
 		// for minimum chunk, somehow get physical measurement of a finger width :+1:
 		// TODO add the minimum chunk ratio as a config in gesture.conf?
-		String output = handleGesture(gs, view_width, view_height, view_width / 8);
+		String output = handleGesture(gs, view_width, view_height, view_width / 6);
 		Log.e(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
 		gs = new Gesture();
 		gi = 0;
