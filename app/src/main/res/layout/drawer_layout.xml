@@ -1,4 +1,5 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -12,8 +13,8 @@
         android:layout_height="match_parent">
 
         <FrameLayout
-	    android:layout_width="fill_parent"
-	    android:layout_height="wrap_content">
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent">
 	  
           <com.termux.view.TerminalView
               android:id="@+id/terminal_view"
@@ -40,7 +41,19 @@
 	      android:layout_height="wrap_content"
 	      android:background="@android:color/transparent">
           </RelativeLayout>	  
-	  
+
+ 	  <RelativeLayout
+	      android:id="@+id/linelayout"
+	      android:layout_weight="90"
+	      android:layout_width="match_parent"
+	      android:layout_height="200dp"
+	      android:autoSizeTextType="uniform"
+	      android:autoSizeMinTextSize="50sp"
+	      android:autoSizeMaxTextSize="1000sp"
+	      android:autoSizeStepGranularity="50sp" 
+	      android:background="@android:color/transparent">
+          </RelativeLayout>	  
+
 	</FrameLayout>
 
         <LinearLayout

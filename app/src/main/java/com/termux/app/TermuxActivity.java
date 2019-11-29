@@ -82,6 +82,7 @@ import androidx.annotation.Nullable;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager.widget.PagerAdapter;
 import androidx.viewpager.widget.ViewPager;
+import androidx.core.widget.TextViewCompat;
 
 /**
  * A terminal emulator activity.
@@ -148,9 +149,11 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
     // gesture graphics things
     RelativeLayout gestureLayout;
     RelativeLayout letterLayout; // for single big letter display (and maybe also morse code in-progress
+    RelativeLayout lineLayout; // for a single dynamically sized line from the console
     Paint paint;
     View gestureView;
     TextView letterView;
+    TextView lineView;
     Path path2;
     Bitmap bitmap;
     Canvas canvas;
@@ -305,8 +308,10 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         setContentView(R.layout.drawer_layout);
 	gestureLayout = (RelativeLayout) findViewById(R.id.gesturelayout);
 	letterLayout = (RelativeLayout) findViewById(R.id.letterlayout);
+	lineLayout = (RelativeLayout) findViewById(R.id.linelayout);
 	gestureView = new SketchSheetView(TermuxActivity.this);
 	letterView = new TextView(TermuxActivity.this);
+	lineView = new TextView(TermuxActivity.this);
 	paint = new Paint();
 	path2 = new Path();
 	gestureLayout.addView(gestureView, new LayoutParams(
@@ -315,6 +320,17 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	letterLayout.addView(letterView, new LayoutParams(
 						     RelativeLayout.LayoutParams.MATCH_PARENT,
 						     RelativeLayout.LayoutParams.MATCH_PARENT));
+	lineLayout.addView(lineView, new LayoutParams(
+						      RelativeLayout.LayoutParams.MATCH_PARENT,
+						      RelativeLayout.LayoutParams.MATCH_PARENT));
+	// temporary
+	//	lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
+	lineView.setTextColor(Color.GRAY);
+	//	lineView.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+	//	lineView.setText("This is some test text for an auto size line.");
+	lineView.setText("test");
+
 	paint.setDither(true);
 	paint.setColor(Color.parseColor("#FF6600"));
 	paint.setStyle(Paint.Style.STROKE);
