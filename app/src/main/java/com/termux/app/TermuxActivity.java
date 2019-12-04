@@ -313,18 +313,18 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	letterView = new TextView(TermuxActivity.this);
 	paint = new Paint();
 	path2 = new Path();
-	// gestureLayout.addView(gestureView, new LayoutParams(
-	// 					     RelativeLayout.LayoutParams.MATCH_PARENT,
-	// 					     RelativeLayout.LayoutParams.MATCH_PARENT));
-	// letterLayout.addView(letterView, new LayoutParams(
-	// 					     RelativeLayout.LayoutParams.MATCH_PARENT,
-	// 					     RelativeLayout.LayoutParams.MATCH_PARENT));
+	 gestureLayout.addView(gestureView, new LayoutParams(
+	 					     RelativeLayout.LayoutParams.MATCH_PARENT,
+	 					     RelativeLayout.LayoutParams.MATCH_PARENT));
+	 letterLayout.addView(letterView, new LayoutParams(
+	 					     RelativeLayout.LayoutParams.MATCH_PARENT,
+	 					     RelativeLayout.LayoutParams.MATCH_PARENT));
 	// temporary
-	//	lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
-	lineView.setTextColor(Color.GRAY);
-	//	lineView.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);
-	//TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
-	//	lineView.setText("This is some test text for an auto size line.");
+		lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
+	lineView.setTextColor(Color.YELLOW);
+//		lineView.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+		lineView.setText("This is some test text for an auto size line.");
 	//lineView.setText("test");
 
 	paint.setDither(true);

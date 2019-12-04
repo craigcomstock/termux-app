@@ -3,7 +3,8 @@
 
     <!-- See https://developer.android.com/training/material/theme.html for how to customize the Material theme. -->
     <!-- NOTE: Cannot use "Light." since it hides the terminal scrollbar on the default black background. -->
-    <style name="Theme.Termux" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <!-- changed to an AppCompat Theme here to support autotextsize? -->
+    <style name="Theme.Termux" parent="Theme.AppCompat.NoActionBar">
         <item name="android:statusBarColor">#000000</item>
         <item name="android:colorPrimary">#FF000000</item>
         <item name="android:windowBackground">@android:color/black</item>

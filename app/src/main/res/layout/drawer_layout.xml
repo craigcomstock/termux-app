@@ -48,7 +48,7 @@
 	      android:id="@+id/lineview"
 	      android:layout_width="match_parent"
 	      android:layout_height="match_parent"
-              android:autoSizeTextType="uniform"
+          android:autoSizeTextType="uniform"
 	      android:text="foo bar baz foo boo soo too tar"
 	      android:background="@android:color/transparent"/>
 
