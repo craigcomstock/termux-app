@@ -58,6 +58,7 @@ import com.termux.terminal.EmulatorDebug;
 import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSession.SessionChangedCallback;
+import com.termux.terminal.TerminalEmulator;
 import com.termux.terminal.TextStyle;
 import com.termux.view.TerminalView;
 
@@ -324,6 +325,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	lineView.setTextColor(Color.YELLOW);
 //		lineView.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);
 	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+	// TODO maybe change the settings to get even bigger text?
 		lineView.setText("This is some test text for an auto size line.");
 	//lineView.setText("test");
 
@@ -834,7 +836,26 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             @Override
             public void onTextChanged(TerminalSession changedSession) {
                 if (!mIsVisible) return;
-                if (getCurrentTermSession() == changedSession) mTerminalView.onScreenUpdated();
+                if (getCurrentTermSession() == changedSession) {
+		    mTerminalView.onScreenUpdated();
+		    //		    Log.e("TERMUX_ACTIVITY","onTextChanged()");
+		    // OK. Cool. I think this is where I need to grab the latest line (if that's what I'm viewing in speech/morse/oneline modes
+		    //		    TerminalBuffer screen = changedSession.getEmulator().getScreen()
+		    // How do I know which line to look at?
+		    // Can I get the cursor location?
+		    TerminalEmulator te = changedSession.getEmulator();
+		    Log.e("TERMUX_ACTIVITY","onTextChanged(), cursor row=" + te.getCursorRow() + ", col=" + te.getCursorCol());
+		    Log.e("TERMUX_ACTIVITY","onTextChanged(), selected text at current row=" + te.getSelectedText(0, te.getCursorRow()-2, 255, te.getCursorRow()+2));
+		    // How do I know what text is new since last change? Check diff of cursor row? Not really I wouldn't think.
+		    // So how do I know what to use for x2? get the width of the screen?
+		    lineView.setText(te.getSelectedText(0, te.getCursorRow()-1, 255, te.getCursorRow()));
+		    // OK. So I am just getting LINES_ON_THE_SCREEN and not LINES_IN_THE_TTY/BUFFER
+		    // How to get into that???
+		    
+		    // ALSO: need to provide some way to work your way through multiple lines like less/more by default
+		    // and not just jam through everything fast. WAIT for the user to say, yeah go ahead with next line(s)
+		    // I remember this is like the diff b/w ONE result (just print it) and MANY results (say how many and page through them line by line)
+		}
             }
 
             @Override
