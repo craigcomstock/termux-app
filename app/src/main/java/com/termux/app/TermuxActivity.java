@@ -70,6 +70,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.Runnable;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -160,17 +161,16 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     Canvas canvas;
     Properties gestures;
 
-    private static final int CLEAR_GESTURE_TRACE_AND_LETTER = 1;
     private Handler mHandler = new Handler() {
-	@Override
-	public void handleMessage(Message msg) {
-	    if (msg.what == CLEAR_GESTURE_TRACE_AND_LETTER) {
-		gestureView.clearDrawing();
-		letterView.setText("");
+	    @Override
+	    public void handleMessage(Message msg) {
+		if (msg.what == mHandlerCounter) {
+		    gestureView.clearDrawing();
+		    letterView.setText("");
+		}
 	    }
-	}
 	};
-
+    int mHandlerCounter = 0; // keep track of which counter is "current" and only allow that one to cancel
     
     private final BroadcastReceiver mBroadcastReceiever = new BroadcastReceiver() {
         @Override
@@ -329,20 +329,25 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 							    RelativeLayout.LayoutParams.MATCH_PARENT,
 							    RelativeLayout.LayoutParams.MATCH_PARENT));
 	lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
-	lineView.setTextColor(Color.YELLOW); // TODO dark/light modes
+
+	lineView.setTextColor(Color.YELLOW); // TODO dark/light modes, configurable from file
+
 	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
-	TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(letterView,
-								   160, // minsize
+
+	// TODO I can't make 'j' or '@' for example, to draw :(
+	//TextViewCompat.setAutoSizeTextTypeWithDefaults(letterView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+		TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(letterView,
+								   80, // minsize
 								   600, // maxsize, why not!? :p
-								   20, // step size
+								   10, // step size
 								   TypedValue.COMPLEX_UNIT_SP);
 
 	paint.setDither(true);
-	paint.setColor(Color.parseColor("#FF6600"));
+	paint.setColor(Color.parseColor("#FF6600")); // TODO make configurable from file
 	paint.setStyle(Paint.Style.STROKE);
 	paint.setStrokeJoin(Paint.Join.ROUND);
 	paint.setStrokeCap(Paint.Cap.ROUND);
-	paint.setStrokeWidth(8);
+	paint.setStrokeWidth(8); // TODO adjust on watch for smaller stroke
 	
         mTerminalView = findViewById(R.id.terminal_view);
         mTerminalView.setOnKeyListener(new TermuxViewClient(this));
@@ -496,7 +501,20 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    view_height = yNew;
 	}
 
+	// TODO I can't make this thing disappear?
+	// Wait. canvas.clear if DrawingClassArrayList is empty?
 	protected void clearDrawing() {
+	    /*
+	    path2.reset();
+	    DrawingClass pathWithPaint = new DrawingClass();
+	    canvas.drawPath(path2, paint);
+	    
+	    path2.moveTo(0, 0);
+	    path2.lineTo(1, 1);
+	    pathWithPaint.setPath(path2);
+	    pathWithPaint.setPaint(paint);
+	    DrawingClassArrayList.add(pathWithPaint);
+	    */
 	    DrawingClassArrayList.clear();
 	}
 	
@@ -505,6 +523,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    DrawingClass pathWithPaint = new DrawingClass();
 	    canvas.drawPath(path2, paint);
 	    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+
+		mHandlerCounter++;
+		if (mHandlerCounter > 50) { // certainly you can't draw more than 50 gestures in a second right?
+		    mHandlerCounter = 0;
+		}
+		
 		int x = (int)event.getX();
 		int y = (int)event.getY();
 		Log.e("GESTURE", "ACTION_DOWN, x="+x+", y="+y);
@@ -543,7 +567,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		gs = new Gesture();
 		gi = 0;
 
-		mHandler.sendEmptyMessageDelayed(CLEAR_GESTURE_TRACE_AND_LETTER, 1000);
+		mHandler.sendEmptyMessageDelayed(mHandlerCounter, 1000); // TODO delay should be configurable in a file
 		
 	    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 		int x = (int)event.getX();
@@ -788,7 +812,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		letterView.setTextColor(Color.GREEN);
 		letterView.setText(toput);
 	    } else {
-		//letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
+		letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
 		letterView.setTextColor(Color.RED);
 		letterView.setText("key not found: "+key);
 	    }
@@ -802,6 +826,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		canvas.drawPath(
 				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPath(),
 				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPaint());
+	    } else {
+		canvas.drawColor(Color.TRANSPARENT);
 	    }
 	}
     }
