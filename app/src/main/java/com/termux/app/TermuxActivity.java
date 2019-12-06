@@ -15,6 +15,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.PorterDuff;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -516,6 +517,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    DrawingClassArrayList.add(pathWithPaint);
 	    */
 	    DrawingClassArrayList.clear();
+	    Log.e("GESTURE", "clearDrawing(), DrawingClassArrayList.size="+DrawingClassArrayList.size());
+
 	}
 	
 	@Override
@@ -822,12 +825,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	@Override
 	protected void onDraw(Canvas canvas) {
 	    super.onDraw(canvas);
+	    Log.e("GESTURE", "onDraw(), DrawingClassArrayList.size="+DrawingClassArrayList.size());
+	    
 	    if (DrawingClassArrayList.size() > 0) {
 		canvas.drawPath(
 				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPath(),
 				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPaint());
 	    } else {
-		canvas.drawColor(Color.TRANSPARENT);
+		canvas.drawColor(Color.BLACK, PorterDuff.Mode.CLEAR);
 	    }
 	}
     }
