@@ -3,7 +3,6 @@ package com.termux.app;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-//import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -27,7 +26,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -150,16 +151,27 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     // gesture graphics things
     RelativeLayout gestureLayout;
-    RelativeLayout letterLayout; // for single big letter display (and maybe also morse code in-progress
+    TextView letterView; // for single big letter display (and maybe also morse code in-progress
     Paint paint;
-    View gestureView;
-    TextView letterView;
+    GestureView gestureView;
     TextView lineView;
     Path path2;
     Bitmap bitmap;
     Canvas canvas;
     Properties gestures;
-	
+
+    private static final int CLEAR_GESTURE_TRACE_AND_LETTER = 1;
+    private Handler mHandler = new Handler() {
+	@Override
+	public void handleMessage(Message msg) {
+	    if (msg.what == CLEAR_GESTURE_TRACE_AND_LETTER) {
+		gestureView.clearDrawing();
+		letterView.setText("");
+	    }
+	}
+	};
+
+    
     private final BroadcastReceiver mBroadcastReceiever = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -308,26 +320,22 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         setContentView(R.layout.drawer_layout);
 	gestureLayout = (RelativeLayout) findViewById(R.id.gesturelayout);
-	letterLayout = (RelativeLayout) findViewById(R.id.letterlayout);
+	letterView = (TextView) findViewById(R.id.letterview);
         lineView = (TextView) findViewById(R.id.lineview);
-	gestureView = new SketchSheetView(TermuxActivity.this);
-	letterView = new TextView(TermuxActivity.this);
+	gestureView = new GestureView(TermuxActivity.this);
 	paint = new Paint();
 	path2 = new Path();
-	 gestureLayout.addView(gestureView, new LayoutParams(
-	 					     RelativeLayout.LayoutParams.MATCH_PARENT,
-	 					     RelativeLayout.LayoutParams.MATCH_PARENT));
-	 letterLayout.addView(letterView, new LayoutParams(
-	 					     RelativeLayout.LayoutParams.MATCH_PARENT,
-	 					     RelativeLayout.LayoutParams.MATCH_PARENT));
-	// temporary
-		lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
-	lineView.setTextColor(Color.YELLOW);
-//		lineView.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM);
+	gestureLayout.addView(gestureView, new LayoutParams(
+							    RelativeLayout.LayoutParams.MATCH_PARENT,
+							    RelativeLayout.LayoutParams.MATCH_PARENT));
+	lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
+	lineView.setTextColor(Color.YELLOW); // TODO dark/light modes
 	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
-	// TODO maybe change the settings to get even bigger text?
-		lineView.setText("This is some test text for an auto size line.");
-	//lineView.setText("test");
+	TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(letterView,
+								   160, // minsize
+								   600, // maxsize, why not!? :p
+								   20, // step size
+								   TypedValue.COMPLEX_UNIT_SP);
 
 	paint.setDither(true);
 	paint.setColor(Color.parseColor("#FF6600"));
@@ -443,9 +451,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mBellSoundId = mBellSoundPool.load(this, R.raw.bell, 1);
     }
 
-    // TODO refactor as a GestureView class :+1:
-    class SketchSheetView extends View {
-	public SketchSheetView(Context context) {
+    class GestureView extends View {
+	public GestureView(Context context) {
 	    super(context);
 	    bitmap = Bitmap.createBitmap(820,480,Bitmap.Config.ARGB_4444);
 	    canvas = new Canvas(bitmap);
@@ -487,6 +494,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    super.onSizeChanged(xNew, yNew, xOld, yOld);
 	    view_width = xNew;
 	    view_height = yNew;
+	}
+
+	protected void clearDrawing() {
+	    DrawingClassArrayList.clear();
 	}
 	
 	@Override
@@ -531,6 +542,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		Log.e(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
 		gs = new Gesture();
 		gi = 0;
+
+		mHandler.sendEmptyMessageDelayed(CLEAR_GESTURE_TRACE_AND_LETTER, 1000);
+		
 	    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 		int x = (int)event.getX();
 		int y = (int)event.getY();
@@ -698,9 +712,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    // at this point we have our key, I think, let's just print it out and see if that much works. :+1:
 	    Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), key='"+key+"'");
 
-	    // try to send this out to the letterView :)
-	    Log.e(EmulatorDebug.LOG_TAG, "letterView current size in pixels: "+letterView.getTextSize());
-	    
 	    if (gestures == null) {
 		// TODO this might slow down the first recog but how else to do it?
 		Log.e(EmulatorDebug.LOG_TAG, "gesture.conf not loaded, do it now");
@@ -761,7 +772,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		Log.e(EmulatorDebug.LOG_TAG, "toput='"+toput+"', toput.length="+toput.length());
 		    
 		if (toput.length() > 0) {
-		    letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 160);
+		    //letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 160);
 		    // in this case we send it to the session
 		    // actually I need to send other things eventually... like tab/enter/etc :(
 		    TerminalSession session = getCurrentTermSession();
@@ -772,12 +783,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 			}
 		    }
 		} else {
-		    letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 80);
+		    //letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 80);
 		}
 		letterView.setTextColor(Color.GREEN);
 		letterView.setText(toput);
 	    } else {
-		letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
+		//letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
 		letterView.setTextColor(Color.RED);
 		letterView.setText("key not found: "+key);
 	    }

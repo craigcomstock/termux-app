@@ -17,7 +17,14 @@
         <FrameLayout
 	    android:layout_width="match_parent"
 	    android:layout_height="match_parent">
-	  
+
+	  <RelativeLayout
+	      android:id="@+id/pictureLayout"
+	      android:layout_weight="90"
+	      android:layout_width="match_parent"
+	      android:layout_height="match_parent"
+	      android:background="@android:color/transparent"/>
+	    
           <com.termux.view.TerminalView
               android:id="@+id/terminal_view"
               android:layout_width="match_parent"
@@ -29,27 +36,31 @@
               android:scrollbars="vertical" />
 
 	  <RelativeLayout
-	      android:id="@+id/gesturelayout"
+	      android:id="@+id/turtleview"
 	      android:layout_weight="90"
-	      android:layout_width="fill_parent"
-	      android:layout_height="wrap_content"
-	      android:background="@android:color/transparent">
-          </RelativeLayout>
-
-	  <RelativeLayout
-	      android:id="@+id/letterlayout"
-	      android:layout_weight="90"
-	      android:layout_width="fill_parent"
-	      android:layout_height="wrap_content"
-	      android:background="@android:color/transparent">
-          </RelativeLayout>	  
-
+	      android:layout_width="match_parent"
+	      android:layout_height="match_parent"
+	      android:background="@android:color/transparent"/>
+	  
  	  <TextView
 	      android:id="@+id/lineview"
 	      android:layout_width="match_parent"
 	      android:layout_height="match_parent"
-          android:autoSizeTextType="uniform"
-	      android:text="foo bar baz foo boo soo too tar"
+              android:autoSizeTextType="uniform"
+	      android:background="@android:color/transparent"/>
+
+	  <RelativeLayout
+	      android:id="@+id/gesturelayout"
+	      android:layout_weight="90"
+	      android:layout_width="fill_parent"
+	      android:layout_height="wrap_content"
+	      android:background="@android:color/transparent"/>
+
+	  <TextView
+	      android:id="@+id/letterview"
+	      android:layout_width="match_parent"
+	      android:layout_height="match_parent"
+	      android:autoSizeTextType="uniform"
 	      android:background="@android:color/transparent"/>
 
 	</FrameLayout>
