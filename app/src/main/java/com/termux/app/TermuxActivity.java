@@ -167,6 +167,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    public void handleMessage(Message msg) {
 		if (msg.what == mHandlerCounter) {
 		    gestureView.clearDrawing();
+		    gestureView.invalidate();
 		    letterView.setText("");
 		}
 	    }
@@ -832,7 +833,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPath(),
 				DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPaint());
 	    } else {
-		canvas.drawColor(Color.BLACK, PorterDuff.Mode.CLEAR);
+		canvas.drawColor(Color.TRANSPARENT);
 	    }
 	}
     }
