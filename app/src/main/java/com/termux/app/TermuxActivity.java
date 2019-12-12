@@ -912,8 +912,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    // Wed Dec 11, I think this might work. If a line is wrapped the buffer/screen knows so
 		    // so just loop backwards until we get to a non-wrapped line, right?
 		    int startRow = te.getCursorRow()-1;
+		    if (startRow < 0) { startRow = 0; } // tmux case?
 		    int endRow = te.getCursorRow();
-		    while (screen.getLineWrap(startRow) && startRow > 0) { // TODO any danger here of not terminating?
+		    while (screen.getLineWrap(startRow) && startRow > 1) { // TODO any danger here of not terminating?
 			startRow--;
 		    }
 		    String line = screen.getSelectedText(0, startRow, 1000, endRow); // TODO 1000 is just silly.
