@@ -402,12 +402,17 @@ public final class TerminalEmulator {
      * @param length the number of bytes in the array to process
      */
     public void append(byte[] buffer, int length) {
+	// going to log here just to see what the TerminalEmulator deals with. May be a bad idea (log spam) but oh well.
+	//Log.e(EmulatorDebug.LOG_TAG, "craig");
+	//System.out.println("CRAIG, TemrinalEmulator.append() length="+length+", buffer="+new String(buffer));
+	// that was interesting. Might just get "everything" but still I'm looking for the current line (full line) and the previous
+	//	Log.e(EmulatorDebug.LOG_TAG, "TerminalEmulator.append(buffer="+Arrays.toString(buffer)+", length="+length+")");
         for (int i = 0; i < length; i++)
             processByte(buffer[i]);
     }
 
     private void processByte(byte byteToProcess) {
-        if (mUtf8ToFollow > 0) {
+	 if (mUtf8ToFollow > 0) {
             if ((byteToProcess & 0b11000000) == 0b10000000) {
                 // 10xxxxxx, a continuation byte.
                 mUtf8InputBuffer[mUtf8Index++] = byteToProcess;

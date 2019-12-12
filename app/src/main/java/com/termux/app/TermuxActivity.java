@@ -61,6 +61,8 @@ import com.termux.terminal.TerminalColors;
 import com.termux.terminal.TerminalSession;
 import com.termux.terminal.TerminalSession.SessionChangedCallback;
 import com.termux.terminal.TerminalEmulator;
+import com.termux.terminal.TerminalBuffer;
+import com.termux.terminal.TerminalRow;
 import com.termux.terminal.TextStyle;
 import com.termux.view.TerminalView;
 
@@ -349,7 +351,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	paint.setStyle(Paint.Style.STROKE);
 	paint.setStrokeJoin(Paint.Join.ROUND);
 	paint.setStrokeCap(Paint.Cap.ROUND);
-	paint.setStrokeWidth(8); // TODO adjust on watch for smaller stroke
+	paint.setStrokeWidth(4); // TODO adjust on watch for smaller stroke
 	
         mTerminalView = findViewById(R.id.terminal_view);
         mTerminalView.setOnKeyListener(new TermuxViewClient(this));
@@ -887,17 +889,59 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    // How do I know which line to look at?
 		    // Can I get the cursor location?
 		    TerminalEmulator te = changedSession.getEmulator();
+		    TerminalBuffer screen = te.getScreen();
 		    Log.e("TERMUX_ACTIVITY","onTextChanged(), cursor row=" + te.getCursorRow() + ", col=" + te.getCursorCol());
-		    Log.e("TERMUX_ACTIVITY","onTextChanged(), selected text at current row=" + te.getSelectedText(0, te.getCursorRow()-2, 255, te.getCursorRow()+2));
+		    //String line = te.getSelectedText(0, te.getCursorRow()-1, 255, te.getCursorRow());
+		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), te.getSelectedText(0, "+(te.getCursorRow()-1)+", 255, "+te.getCursorRow()+")="+line);
+		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), tb.getTranscriptTextWithoutJoinedLines="+tb.getTranscriptTextWithoutJoinedLines());
+		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), tb.getTranscriptText()="+tb.getTranscriptText());
+		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), tb.allocateFullLineIfNecessary(te.getCursorRow())='"+new String(tb.allocateFullLineIfNecessary(te.getCursorRow()).mText)+"'");
+
+		    // The following didn't work.
+		    //TerminalRow lineObject = screen.allocateFullLineIfNecessary(screen.externalToInternalRow(te.getCursorRow()));
+		    //final char[] lineChars = lineObject.mText;
+		    //String line = new String(lineChars);
+
+		    // I think I'll have to go the extra mile and modify TerminalBuffer class to getFullLine(row) similar to getTranscriptText()
+		    // which basically does the right thing, just for too many lines (the whole screen)
+		    // Actually, I think I can do this myself externally.
+		    //public String getTranscriptText() {
+		    //  return getSelectedText(0, -getActiveTranscriptRows(), mColumns, mScreenRows).trim();
+		    //}
+
+		    // Wed Dec 11, I think this might work. If a line is wrapped the buffer/screen knows so
+		    // so just loop backwards until we get to a non-wrapped line, right?
+		    int startRow = te.getCursorRow()-1;
+		    int endRow = te.getCursorRow();
+		    while (screen.getLineWrap(startRow) && startRow > 0) { // TODO any danger here of not terminating?
+			startRow--;
+		    }
+		    String line = screen.getSelectedText(0, startRow, 1000, endRow); // TODO 1000 is just silly.
+		    Log.e("TERMUX_ACTIVITY", "onTextChanged(), line="+line+"'");
+
+		    // TODO Wed Dec 11, another idea for 2-line mode is to resize the console into a wacky shape.
+		    // But that might break some apps, which I don't care about. ;) like mutt or something. But
+		    // things like pkg install/apt might complain too.
+		    // Might need to write my own 1-line pinentry program! :p
+
+		    //Log.e("TERMUX_ACTIVITY","onTextChanged(), selected text at current row=" + te.getSelectedText(0, te.getCursorRow()-2, 255, te.getCursorRow()+2));
 		    // How do I know what text is new since last change? Check diff of cursor row? Not really I wouldn't think.
 		    // So how do I know what to use for x2? get the width of the screen?
-		    lineView.setText(te.getSelectedText(0, te.getCursorRow()-1, 255, te.getCursorRow()));
+		    lineView.setText(line);
+		    //lineView.setText(te.getSelectedText(0, te.getCursorRow()-1, 255, te.getCursorRow()));
 		    // OK. So I am just getting LINES_ON_THE_SCREEN and not LINES_IN_THE_TTY/BUFFER
 		    // How to get into that???
 		    
 		    // ALSO: need to provide some way to work your way through multiple lines like less/more by default
 		    // and not just jam through everything fast. WAIT for the user to say, yeah go ahead with next line(s)
 		    // I remember this is like the diff b/w ONE result (just print it) and MANY results (say how many and page through them line by line)
+
+		    // Alternate method taken from TerminalRenderer.java, actually, getSelectedText() does the same things as below
+		    //TerminalRow lineObject = screen.allocateFullLineIfNecessary(screen.externalToInternalRow(row));
+		    //final char[] line = lineObject.mText;
+		    //final int charsUsedInLine = lineObject.getSpaceUsed();
+		    //lineView.setText(line); // TODO get the previous line as well if it isn't the first line.
+		    // TODO meddle with the cursor :P
 		}
             }
 
