@@ -88,7 +88,7 @@ final class TermuxPreferences {
         // to prevent invisible text due to zoom be mistake:
         MIN_FONTSIZE = (int) (4f * dipInPixels);
 
-        mShowExtraKeys = prefs.getBoolean(SHOW_EXTRA_KEYS_KEY, true);
+        mShowExtraKeys = prefs.getBoolean(SHOW_EXTRA_KEYS_KEY, false); // TODO default for me, make it easy in the UI to change
         mScreenAlwaysOn = prefs.getBoolean(SCREEN_ALWAYS_ON_KEY, false);
 
         // http://www.google.com/design/spec/style/typography.html#typography-line-height

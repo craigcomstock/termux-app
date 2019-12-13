@@ -30,10 +30,13 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.text.Spannable;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.StyleSpan;
+import android.text.style.BackgroundColorSpan;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.ContextMenu;
@@ -338,9 +341,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
 	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
 
-	// TODO I can't make 'j' or '@' for example, to draw :(
-	//TextViewCompat.setAutoSizeTextTypeWithDefaults(letterView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
-		TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(letterView,
+	TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(letterView,
 								   80, // minsize
 								   600, // maxsize, why not!? :p
 								   10, // step size
@@ -361,11 +362,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mTerminalView.requestFocus();
 
         final ViewPager viewPager = findViewById(R.id.viewpager);
-        if (mSettings.mShowExtraKeys) viewPager.setVisibility(View.VISIBLE);
+	if (mSettings.mShowExtraKeys) viewPager.setVisibility(View.VISIBLE);
 
 
         ViewGroup.LayoutParams layoutParams = viewPager.getLayoutParams();
-        layoutParams.height = layoutParams.height * mSettings.mExtraKeys.length;
+	layoutParams.height = layoutParams.height * mSettings.mExtraKeys.length;
         viewPager.setLayoutParams(layoutParams);
 
         viewPager.setAdapter(new PagerAdapter() {
@@ -404,7 +405,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                         }
                         return true;
                     });
-                }
+		}
                 collection.addView(layout);
                 return layout;
             }
@@ -446,7 +447,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             toggleShowExtraKeys();
             return true;
         });
-
+	
         registerForContextMenu(mTerminalView);
 
         Intent serviceIntent = new Intent(this, TermuxService.class);
@@ -465,7 +466,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    super(context);
 	    bitmap = Bitmap.createBitmap(820,480,Bitmap.Config.ARGB_4444);
 	    canvas = new Canvas(bitmap);
-	    //	    this.setBackgroundColor(Color.WHITE);
 	}
 
 	private ArrayList<DrawingClass> DrawingClassArrayList = new ArrayList<DrawingClass>();
@@ -505,23 +505,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    view_height = yNew;
 	}
 
-	// TODO I can't make this thing disappear?
-	// Wait. canvas.clear if DrawingClassArrayList is empty?
 	protected void clearDrawing() {
-	    /*
-	    path2.reset();
-	    DrawingClass pathWithPaint = new DrawingClass();
-	    canvas.drawPath(path2, paint);
-	    
-	    path2.moveTo(0, 0);
-	    path2.lineTo(1, 1);
-	    pathWithPaint.setPath(path2);
-	    pathWithPaint.setPaint(paint);
-	    DrawingClassArrayList.add(pathWithPaint);
-	    */
 	    DrawingClassArrayList.clear();
-	    Log.e("GESTURE", "clearDrawing(), DrawingClassArrayList.size="+DrawingClassArrayList.size());
-
 	}
 	
 	@Override
@@ -561,13 +546,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		if (gi > MAX_POINTS - 1) {
 		    gi--; // just keep pushing the last point into the last slot
 		}
-		//		path2.moveTo(event.getX(), event.getY());
-		//		path2.lineTo(event.getX(), event.getY());
 	    } else if (event.getAction() == MotionEvent.ACTION_UP) {
 		gs.numPoints = gi;
-		
-		// for minimum chunk, somehow get physical measurement of a finger width :+1:
-		// TODO add the minimum chunk ratio as a config in gesture.conf?
+
+		// TODO how to get the physical size of the screen so we can make the
+		// minimum chunk ratio (fourth parameter to handleGesture()) be about
+		// the size of the average human finger?
+		// TODO maybe add the minimum chunk ratio as a config in gesture.conf?
 		String output = handleGesture(gs, view_width, view_height, view_width / 6);
 		Log.e(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
 		gs = new Gesture();
@@ -802,9 +787,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		Log.e(EmulatorDebug.LOG_TAG, "toput='"+toput+"', toput.length="+toput.length());
 		    
 		if (toput.length() > 0) {
-		    //letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 160);
-		    // in this case we send it to the session
-		    // actually I need to send other things eventually... like tab/enter/etc :(
 		    TerminalSession session = getCurrentTermSession();
 		    if (session != null) {
 			if (session.isRunning()) {
@@ -812,13 +794,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 			    session.write(toput);
 			}
 		    }
-		} else {
-		    //letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 80);
 		}
 		letterView.setTextColor(Color.GREEN);
 		letterView.setText(toput);
 	    } else {
-		letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
+		//		letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
 		letterView.setTextColor(Color.RED);
 		letterView.setText("key not found: "+key);
 	    }
@@ -883,66 +863,38 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 if (!mIsVisible) return;
                 if (getCurrentTermSession() == changedSession) {
 		    mTerminalView.onScreenUpdated();
-		    //		    Log.e("TERMUX_ACTIVITY","onTextChanged()");
-		    // OK. Cool. I think this is where I need to grab the latest line (if that's what I'm viewing in speech/morse/oneline modes
-		    //		    TerminalBuffer screen = changedSession.getEmulator().getScreen()
-		    // How do I know which line to look at?
-		    // Can I get the cursor location?
 		    TerminalEmulator te = changedSession.getEmulator();
 		    TerminalBuffer screen = te.getScreen();
+		    int cursorPosition = te.getCursorCol();
+		    // TODO, in order to get proper cursor position within the big string we are making
+		    // we will need to build up the big string in chunks of each line when wrapped
+		    // and keep track of length of each line to know the right place to setSpan() the cursor
+		    // swap background/foreground colors there?
 		    Log.e("TERMUX_ACTIVITY","onTextChanged(), cursor row=" + te.getCursorRow() + ", col=" + te.getCursorCol());
-		    //String line = te.getSelectedText(0, te.getCursorRow()-1, 255, te.getCursorRow());
-		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), te.getSelectedText(0, "+(te.getCursorRow()-1)+", 255, "+te.getCursorRow()+")="+line);
-		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), tb.getTranscriptTextWithoutJoinedLines="+tb.getTranscriptTextWithoutJoinedLines());
-		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), tb.getTranscriptText()="+tb.getTranscriptText());
-		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), tb.allocateFullLineIfNecessary(te.getCursorRow())='"+new String(tb.allocateFullLineIfNecessary(te.getCursorRow()).mText)+"'");
+		    
 
-		    // The following didn't work.
-		    //TerminalRow lineObject = screen.allocateFullLineIfNecessary(screen.externalToInternalRow(te.getCursorRow()));
-		    //final char[] lineChars = lineObject.mText;
-		    //String line = new String(lineChars);
-
-		    // I think I'll have to go the extra mile and modify TerminalBuffer class to getFullLine(row) similar to getTranscriptText()
-		    // which basically does the right thing, just for too many lines (the whole screen)
-		    // Actually, I think I can do this myself externally.
-		    //public String getTranscriptText() {
-		    //  return getSelectedText(0, -getActiveTranscriptRows(), mColumns, mScreenRows).trim();
-		    //}
-
-		    // Wed Dec 11, I think this might work. If a line is wrapped the buffer/screen knows so
-		    // so just loop backwards until we get to a non-wrapped line, right?
+		    // If a line is wrapped then work backwards until we get two full lines.
+		    // TODO if the cursor in the current row is in the middle of a group of
+		    // line wrapped lines though we would need to move forward to get them.
 		    int startRow = te.getCursorRow()-1;
-		    if (startRow < 0) { startRow = 0; } // tmux case?
+		    if (startRow < 0) { startRow = 0; }
 		    int endRow = te.getCursorRow();
 		    while (screen.getLineWrap(startRow) && startRow > 1) { // TODO any danger here of not terminating?
 			startRow--;
 		    }
-		    String line = screen.getSelectedText(0, startRow, 1000, endRow); // TODO 1000 is just silly.
-		    Log.e("TERMUX_ACTIVITY", "onTextChanged(), line="+line+"'");
+		    while (screen.getLineWrap(endRow) && endRow < 1000) { // TODO how else to limit this? What is a reasonable max?
+			endRow++;
+		    }
+		    String lines = screen.getSelectedText(0, startRow, 1000, endRow); // TODO 1000 is just silly.
+		    // TODO maybe trim this text?
+		    lines.trim();
+		    Log.e("TERMUX_ACTIVITY", "onTextChanged(), lines='"+lines+"'");
 
-		    // TODO Wed Dec 11, another idea for 2-line mode is to resize the console into a wacky shape.
-		    // But that might break some apps, which I don't care about. ;) like mutt or something. But
-		    // things like pkg install/apt might complain too.
-		    // Might need to write my own 1-line pinentry program! :p
-
-		    //Log.e("TERMUX_ACTIVITY","onTextChanged(), selected text at current row=" + te.getSelectedText(0, te.getCursorRow()-2, 255, te.getCursorRow()+2));
-		    // How do I know what text is new since last change? Check diff of cursor row? Not really I wouldn't think.
-		    // So how do I know what to use for x2? get the width of the screen?
-		    lineView.setText(line);
-		    //lineView.setText(te.getSelectedText(0, te.getCursorRow()-1, 255, te.getCursorRow()));
-		    // OK. So I am just getting LINES_ON_THE_SCREEN and not LINES_IN_THE_TTY/BUFFER
-		    // How to get into that???
-		    
-		    // ALSO: need to provide some way to work your way through multiple lines like less/more by default
-		    // and not just jam through everything fast. WAIT for the user to say, yeah go ahead with next line(s)
-		    // I remember this is like the diff b/w ONE result (just print it) and MANY results (say how many and page through them line by line)
-
-		    // Alternate method taken from TerminalRenderer.java, actually, getSelectedText() does the same things as below
-		    //TerminalRow lineObject = screen.allocateFullLineIfNecessary(screen.externalToInternalRow(row));
-		    //final char[] line = lineObject.mText;
-		    //final int charsUsedInLine = lineObject.getSpaceUsed();
-		    //lineView.setText(line); // TODO get the previous line as well if it isn't the first line.
-		    // TODO meddle with the cursor :P
+		    // TODO represent the cursor in this line of text somehow
+		    //SpannableStringBuilder spannable = new SpannableStringBuilder(lines);
+		    //spannable.setSpan(new BackgroundColorSpan(Color.WHITE),0,1,Spannable.SPAN_EXCLUSIVE_INCLUSIVE);
+		    //lineView.setText(spannable);
+		    lineView.setText(lines);
 		}
             }
 
