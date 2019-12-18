@@ -37,6 +37,7 @@ import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.StyleSpan;
 import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.ContextMenu;
@@ -337,7 +338,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 							    RelativeLayout.LayoutParams.MATCH_PARENT));
 	lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
 
-	lineView.setTextColor(Color.YELLOW); // TODO dark/light modes, configurable from file
+	//	lineView.setTextColor(Color.YELLOW); // TODO dark/light modes, configurable from file
 
 	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
 
@@ -875,6 +876,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    // If a line is wrapped then work backwards until we get two full lines.
 		    // TODO if the cursor in the current row is in the middle of a group of
 		    // line wrapped lines though we would need to move forward to get them.
+		    String currentLine = "", beforeLines = "", lines = "", afterLines = "";
+		    int cursorCharLocation = -1; // have to keep track of this as we go along
+		    int cursorRow = te.getCursorRow();
+		    int cursorCol = te.getCursorCol();
 		    int startRow = te.getCursorRow()-1;
 		    if (startRow < 0) { startRow = 0; }
 		    int endRow = te.getCursorRow();
@@ -884,16 +889,46 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    while (screen.getLineWrap(endRow) && endRow < 1000) { // TODO how else to limit this? What is a reasonable max?
 			endRow++;
 		    }
-		    String lines = screen.getSelectedText(0, startRow, 1000, endRow); // TODO 1000 is just silly.
+		    currentLine = screen.getSelectedText(0, cursorRow, 1000, cursorRow);
+		    if (startRow < cursorRow) {
+			beforeLines = screen.getSelectedText(0, startRow, 1000, cursorRow-1).trim();
+		    }
+		    if (endRow > cursorRow) {
+			afterLines = screen.getSelectedText(0, cursorRow+1, 1000, endRow).trim();
+		    }
+		    Log.e("TERMUX_ACTIVITY", "beforeLines("+beforeLines.length()+")='"+beforeLines+"'");
+		    Log.e("TERMUX_ACTIVITY", "afterLines("+afterLines.length()+")='"+afterLines+"'");
+		    cursorCharLocation = beforeLines.length() + te.getCursorCol();
+		    Log.e("TERMUX_ACTIVITY", "cursorCharLocation="+cursorCharLocation);
+		    Log.e("TERMUX_ACTIVITY", "currentLine("+currentLine.length()+")='"+currentLine+"'");
+		    
 		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), lines.toByteArray()="+Arrays.toString(lines.getBytes()));
-		    lines = lines.trim();
+		    if (beforeLines.length() > 0) {
+			lines = beforeLines + "\n";
+			cursorCharLocation++;
+		    }
+		    lines += currentLine.trim();
+		    if (cursorCol >= currentLine.length()) { // especially if end of line was a bunch of spaces that got trimmed
+			char[] extra = new char[cursorCol - currentLine.length() + 1]; // plus 1 to allow for cursor at end of line.
+			Log.e("TERMUX_ACTIVITY", "extra is "+extra.length+" long");
+			Arrays.fill(extra, ' ');
+			lines += new String(extra);
+		    }
+		    if (afterLines.length() > 0) {
+			lines += afterLines;
+		    }
 		    Log.e("TERMUX_ACTIVITY", "onTextChanged(), lines='"+lines+"'");
 
 		    // TODO represent the cursor in this line of text somehow
-		    //SpannableStringBuilder spannable = new SpannableStringBuilder(lines);
-		    //spannable.setSpan(new BackgroundColorSpan(Color.WHITE),0,1,Spannable.SPAN_EXCLUSIVE_INCLUSIVE);
-		    //lineView.setText(spannable);
-		    lineView.setText(lines);
+		    SpannableStringBuilder spannable = new SpannableStringBuilder(lines);
+		    spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, lines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+		    if (lines.length() > 0) {
+			spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), cursorCharLocation, cursorCharLocation + 1, Spannable.SPAN_POINT_POINT);
+			spannable.setSpan(new ForegroundColorSpan(Color.BLACK), cursorCharLocation, cursorCharLocation + 1, Spannable.SPAN_POINT_POINT);
+		    }
+		    lineView.setText(spannable);
+		    //lineView.setText(lines);
 		}
             }
 
