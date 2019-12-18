@@ -338,6 +338,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 							    RelativeLayout.LayoutParams.MATCH_PARENT));
 	lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
 	lineView.setTypeface(Typeface.MONOSPACE); // TODO configurable please
+	// TODO figure out a way to get bluetooth keyboard to push letters into terminalview even when it is INVISIBLE
 
 	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
 
@@ -555,7 +556,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		// TODO maybe add the minimum chunk ratio as a config in gesture.conf?
 		// For big screen phone like nexus5 view_width / 6 was good
 		// but for kc05 watch I need something a bit more forgiving view_width / 4? (nope, try 5)
-		String output = handleGesture(gs, view_width, view_height, view_width / 5);
+		String output = handleGesture(gs, view_width, view_height, view_width / 6);
 		Log.d(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
 		gs = new Gesture();
 		gi = 0;
@@ -747,6 +748,18 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		// first translate some special names to single character
 		if (value.equals("enter")) {
 		    toput = "" + (char)0x0d;
+		} else if (value.equals("prefix")) { // gesture prefix char
+		    // TODO make a bunch of things for this, for now just toggle the real console
+		    if (mTerminalView.getVisibility() == View.VISIBLE) {
+			mTerminalView.setVisibility(View.INVISIBLE);
+			letterView.setVisibility(View.INVISIBLE);
+			// TODO maybe fiddle with who has an on key listener and focus?
+			// instead of now I have both mTerminalView and lineView :(
+		    } else {
+			mTerminalView.setVisibility(View.VISIBLE);
+			letterView.setVisibility(View.VISIBLE);
+		    }
+		    toput = "";
 		} else if (value.equals("tab")) {
 		    toput = "" + (char)0x09;
 		} else if (value.equals("backspace")) {
