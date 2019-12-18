@@ -872,7 +872,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    // swap background/foreground colors there?
 		    Log.e("TERMUX_ACTIVITY","onTextChanged(), cursor row=" + te.getCursorRow() + ", col=" + te.getCursorCol());
 		    
-
 		    // If a line is wrapped then work backwards until we get two full lines.
 		    // TODO if the cursor in the current row is in the middle of a group of
 		    // line wrapped lines though we would need to move forward to get them.
@@ -886,8 +885,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 			endRow++;
 		    }
 		    String lines = screen.getSelectedText(0, startRow, 1000, endRow); // TODO 1000 is just silly.
-		    // TODO maybe trim this text?
-		    lines.trim();
+		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), lines.toByteArray()="+Arrays.toString(lines.getBytes()));
+		    lines = lines.trim();
 		    Log.e("TERMUX_ACTIVITY", "onTextChanged(), lines='"+lines+"'");
 
 		    // TODO represent the cursor in this line of text somehow
