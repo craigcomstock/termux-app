@@ -183,7 +183,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     private final BroadcastReceiver mBroadcastReceiever = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-	    Log.e("TERMUX_ACTIVITY", "onReceive, mIsVisible="+mIsVisible);
+	    Log.d("TERMUX_ACTIVITY", "onReceive, mIsVisible="+mIsVisible);
 	    
             if (mIsVisible) {
                 String whatToReload = intent.getStringExtra(RELOAD_STYLE_ACTION);
@@ -207,12 +207,12 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     };
 
     void loadGestureConf() {
-	Log.e(EmulatorDebug.LOG_TAG, "loadGestureConf()");
+	Log.d(EmulatorDebug.LOG_TAG, "loadGestureConf()");
 	try {
 	    String gesturesFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/gesture.conf";
-	    Log.e(EmulatorDebug.LOG_TAG, "gesturesFilePath="+gesturesFilePath);
+	    Log.d(EmulatorDebug.LOG_TAG, "gesturesFilePath="+gesturesFilePath);
 	    File gesturesFile = new File(gesturesFilePath);
-	    Log.e(EmulatorDebug.LOG_TAG, "gesturesFile="+gesturesFile);
+	    Log.d(EmulatorDebug.LOG_TAG, "gesturesFile="+gesturesFile);
 
 	    // if gesture.conf isn't at /sdcard/gesture.conf then copy from resources
 	    if (!gesturesFile.exists()) {
@@ -337,8 +337,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 							    RelativeLayout.LayoutParams.MATCH_PARENT,
 							    RelativeLayout.LayoutParams.MATCH_PARENT));
 	lineView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
-
-	//	lineView.setTextColor(Color.YELLOW); // TODO dark/light modes, configurable from file
+	lineView.setTypeface(Typeface.MONOSPACE); // TODO configurable please
 
 	TextViewCompat.setAutoSizeTextTypeWithDefaults(lineView, TextViewCompat.AUTO_SIZE_TEXT_TYPE_UNIFORM);
 
@@ -554,8 +553,10 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		// minimum chunk ratio (fourth parameter to handleGesture()) be about
 		// the size of the average human finger?
 		// TODO maybe add the minimum chunk ratio as a config in gesture.conf?
-		String output = handleGesture(gs, view_width, view_height, view_width / 6);
-		Log.e(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
+		// For big screen phone like nexus5 view_width / 6 was good
+		// but for kc05 watch I need something a bit more forgiving view_width / 4? (nope, try 5)
+		String output = handleGesture(gs, view_width, view_height, view_width / 5);
+		Log.d(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
 		gs = new Gesture();
 		gi = 0;
 
@@ -601,7 +602,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
 	// TODO UTF-8, other character set support? Use a String instead? auto-support for such things?
 	String handleGesture(Gesture gs, int screen_width, int screen_height, int minimum_chunk_size) {
-	    Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), screen_width="+screen_width+", screen_height="+screen_height+", minimum_chunk_size="+minimum_chunk_size);
+	    Log.e("TERMUX_ACTIVITY", "handleGesture(), screen_width="+screen_width+", screen_height="+screen_height+", minimum_chunk_size="+minimum_chunk_size);
 
 	    String toput = "";
 	    int MAX_KEYS = 50;
@@ -623,7 +624,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    }
 	    int nw, ne, se, sw;
 	    nw = ne = se = sw = 0;
-	    Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), numPoints="+gs.numPoints+", minx="+gs.minx+", maxx="+gs.maxx+", miny="+gs.miny+", maxy="+gs.maxy+", sx="+sx+", sy="+sy);
+	    Log.e("TERMUX_ACTIVITY", "handleGesture(), numPoints="+gs.numPoints+", minx="+gs.minx+", maxx="+gs.maxx+", miny="+gs.miny+", maxy="+gs.maxy+", sx="+sx+", sy="+sy);
 	    for (; i < gs.numPoints; i++) {
 		rx = gs.points[i].x - gs.minx;
 		tx = rx / sx;
@@ -695,6 +696,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		key += key_y[i];
 	    }
 	    if (key.equals("0:0") || key.equals(".0:0")) {
+		//		Log.d("TERMUX_ACTIVITY", "gesture, gs.maxy="+gs.maxy+", gs.miny="+gs.min
 		if (gs.maxy > screen_height - minimum_chunk_size) {
 		    key += "s";
 		}
@@ -796,8 +798,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 			}
 		    }
 		}
-		letterView.setTextColor(Color.GREEN);
-		letterView.setText(toput);
+		// TODO this is odd, but wanted to avoid printing out OD OC etc for arrow keys
+		if (toput.length() == 1) {
+		    letterView.setTextColor(Color.GREEN);
+		    letterView.setText(toput);
+		}
 	    } else {
 		//		letterView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 30);
 		letterView.setTextColor(Color.RED);
@@ -871,7 +876,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    // we will need to build up the big string in chunks of each line when wrapped
 		    // and keep track of length of each line to know the right place to setSpan() the cursor
 		    // swap background/foreground colors there?
-		    Log.e("TERMUX_ACTIVITY","onTextChanged(), cursor row=" + te.getCursorRow() + ", col=" + te.getCursorCol());
+		    Log.d("TERMUX_ACTIVITY","onTextChanged(), cursor row=" + te.getCursorRow() + ", col=" + te.getCursorCol());
 		    
 		    // If a line is wrapped then work backwards until we get two full lines.
 		    // TODO if the cursor in the current row is in the middle of a group of
@@ -896,11 +901,11 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    if (endRow > cursorRow) {
 			afterLines = screen.getSelectedText(0, cursorRow+1, 1000, endRow).trim();
 		    }
-		    Log.e("TERMUX_ACTIVITY", "beforeLines("+beforeLines.length()+")='"+beforeLines+"'");
-		    Log.e("TERMUX_ACTIVITY", "afterLines("+afterLines.length()+")='"+afterLines+"'");
+		    Log.d("TERMUX_ACTIVITY", "beforeLines("+beforeLines.length()+")='"+beforeLines+"'");
+		    Log.d("TERMUX_ACTIVITY", "afterLines("+afterLines.length()+")='"+afterLines+"'");
 		    cursorCharLocation = beforeLines.length() + te.getCursorCol();
-		    Log.e("TERMUX_ACTIVITY", "cursorCharLocation="+cursorCharLocation);
-		    Log.e("TERMUX_ACTIVITY", "currentLine("+currentLine.length()+")='"+currentLine+"'");
+		    Log.d("TERMUX_ACTIVITY", "cursorCharLocation="+cursorCharLocation);
+		    Log.d("TERMUX_ACTIVITY", "currentLine("+currentLine.length()+")='"+currentLine+"'");
 		    
 		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), lines.toByteArray()="+Arrays.toString(lines.getBytes()));
 		    if (beforeLines.length() > 0) {
@@ -910,19 +915,22 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    lines += currentLine.trim();
 		    if (cursorCol >= currentLine.length()) { // especially if end of line was a bunch of spaces that got trimmed
 			char[] extra = new char[cursorCol - currentLine.length() + 1]; // plus 1 to allow for cursor at end of line.
-			Log.e("TERMUX_ACTIVITY", "extra is "+extra.length+" long");
+			Log.d("TERMUX_ACTIVITY", "extra is "+extra.length+" long");
 			Arrays.fill(extra, ' ');
 			lines += new String(extra);
 		    }
 		    if (afterLines.length() > 0) {
 			lines += afterLines;
 		    }
-		    Log.e("TERMUX_ACTIVITY", "onTextChanged(), lines='"+lines+"'");
+		    Log.d("TERMUX_ACTIVITY", "onTextChanged(), lines='"+lines+"'");
 
 		    // TODO represent the cursor in this line of text somehow
 		    SpannableStringBuilder spannable = new SpannableStringBuilder(lines);
+		    // TODO make colors configurable
 		    spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, lines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
+		    // TODO sometimes (not sure when) I have seen the span be outside the length range. :( Really shouldn't happen with above
+		    // changing the current line with extra spaces at end.
 		    if (lines.length() > 0) {
 			spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), cursorCharLocation, cursorCharLocation + 1, Spannable.SPAN_POINT_POINT);
 			spannable.setSpan(new ForegroundColorSpan(Color.BLACK), cursorCharLocation, cursorCharLocation + 1, Spannable.SPAN_POINT_POINT);
