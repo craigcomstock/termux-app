@@ -37,4 +37,109 @@ public class ScreenBufferTest extends TerminalTestCase {
 		withTerminalSized(5, 3).enterString("ABCDE\r\nFGHIJ").assertLinesAre("ABCDE", "FGHIJ", "     ");
 		assertEquals("ABCDE\nFG", mTerminal.getSelectedText(0, 0, 1, 1));
 	}
+
+    private class TextWithCursor {
+	public String text;
+	public int cursorIndex;
+    }
+    
+    private TextWithCursor getTwoLinesAtCursor() {
+	TerminalBuffer screen = mTerminal.getScreen();
+	int cursorRow = mTerminal.getCursorRow();
+	int getRow = cursorRow;
+	int cursorCol = mTerminal.getCursorCol();
+	int cursorPosition = cursorCol; // for now, in the current line this is right
+	String previousLine = "";
+	String cursorLine = "";
+	
+	System.out.println("CRAIG, === GET TWO LINES AT CURSOR ===");
+	System.out.println("CRAIG, cursorRow="+cursorRow+", cursorCol="+cursorCol);
+	for (int i=0; i<6; i++) {
+	    System.out.println("CRAIG, line "+i+" '"+mTerminal.getSelectedText(0,i,1000,i) + "'" + (screen.getLineWrap(i) ? "->" : " . "));
+	}
+
+	// If I am reading the TerminalBuffer.java code right I think getSelectedText() will limit the X2 value to the number of columns
+	/*
+            if (row == selY2) {
+                x2 = selX2 + 1;
+                if (x2 > columns) x2 = columns;
+            } else {
+                x2 = columns;
+            }
+	*/
+	if (getRow > 0) {
+	    while (getRow > 0 && screen.getLineWrap(getRow-1)) {
+		System.out.println("CRAIG, previous line ("+(getRow-1)+") was wrapped.");
+		getRow--;
+	    }
+	} else {
+	    System.out.println("CRAIG, no previous line to get");
+	}
+
+	System.out.println("CRAIG, getRow="+getRow);
+	System.out.println("CRAIG, linewrap? "+screen.getLineWrap(getRow));
+	/*
+	System.out.println("CRAIG, cursorLine='"+cursorLine+"'");
+	cursorLine = mTerminal.getSelectedText(0, getRow, 1000, getRow);
+	*/
+	
+	while (getRow < cursorRow && screen.getLineWrap(getRow)) {
+	    System.out.println("CRAIG, getRow="+getRow);
+	    System.out.println("CRAIG, linewrap? "+screen.getLineWrap(getRow));
+	    String tmp = mTerminal.getSelectedText(0,getRow,1000,getRow);
+	    //	    if (getRow < cursorRow) { 
+		cursorPosition += tmp.length();
+		//	    }
+	    cursorLine += tmp;
+	    System.out.println("CRAIG, cursorLine='"+cursorLine+"'");
+	    getRow++;
+	}
+
+	cursorLine += mTerminal.getSelectedText(0, cursorRow, 1000, cursorRow);
+	
+	// now get lines after
+	getRow = cursorRow;
+	while (screen.getLineWrap(getRow)) {
+	    getRow++;
+	    cursorLine += mTerminal.getSelectedText(0,getRow,1000,getRow);
+	}
+	
+
+	System.out.println("CRAIG, FINAL cursorLine='"+cursorLine+"'");
+	System.out.println("CRAIG, FINAL cursorPosition="+cursorPosition);
+	TextWithCursor twc = new TextWithCursor();
+	twc.text = cursorLine;
+	twc.cursorIndex = cursorPosition;
+	return twc;
+    }
+    
+    public void testGetTwoLines() {
+	TextWithCursor twc = new TextWithCursor();
+
+	withTerminalSized(3,6).enterString("abcdef\r\nghijkl");
+	placeCursorAndAssert(0,2);
+	twc = getTwoLinesAtCursor();
+	assertEquals("abcdef", twc.text);
+	assertEquals(2, twc.cursorIndex);
+
+	withTerminalSized(3,6).enterString("abc\r\ndefghijkl");
+	placeCursorAndAssert(1,2);
+	twc = getTwoLinesAtCursor();
+
+	withTerminalSized(3,6).enterString("abc");
+	placeCursorAndAssert(0,0);
+	twc = getTwoLinesAtCursor();
+
+	withTerminalSized(3,6).enterString("abcdef");
+	placeCursorAndAssert(0,0);
+	twc = getTwoLinesAtCursor();
+
+	withTerminalSized(3,6).enterString("abcdef");
+	placeCursorAndAssert(1,1);
+	twc = getTwoLinesAtCursor();
+
+	withTerminalSized(3,6).enterString("abc\r\ndefghijkl");
+	placeCursorAndAssert(0,2);
+	twc = getTwoLinesAtCursor();
+    }
 }

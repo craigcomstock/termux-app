@@ -867,6 +867,113 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
     }
 
+    public class TextWithCursor {
+	public String text;
+	public int cursorIndex;
+    }
+    
+    public static TextWithCursor getTwoLinesAtCursor(TerminalEmulator mTerminal, TextWithCursor twc) { // TODO change mTerminal to just terminal name
+	TerminalBuffer screen = mTerminal.getScreen();
+	int cursorRow = mTerminal.getCursorRow();
+	int getRow = cursorRow;
+	int cursorCol = mTerminal.getCursorCol();
+	int cursorPosition = cursorCol; // for now, in the current line this is right
+	String previousLine = "";
+	String cursorLine = "";
+
+	/*
+	System.out.println("CRAIG, === GET TWO LINES AT CURSOR ===");
+	System.out.println("CRAIG, cursorRow="+cursorRow+", cursorCol="+cursorCol);
+	for (int i=0; i<6; i++) {
+	    System.out.println("CRAIG, line "+i+" '"+mTerminal.getSelectedText(0,i,1000,i) + "'" + (screen.getLineWrap(i) ? "->" : " . "));
+	}
+	*/
+	
+	// If I am reading the TerminalBuffer.java code right I think getSelectedText() will limit the X2 value to the number of columns
+	/*
+            if (row == selY2) {
+                x2 = selX2 + 1;
+                if (x2 > columns) x2 = columns;
+            } else {
+                x2 = columns;
+            }
+	*/
+	// hack, start with one row previous
+	getRow--;
+	if (getRow < 0) { getRow = 0; }
+	// end hack :p TODO put back in a unit test with a test case for
+	// $ date
+	// Mon Dec 23...
+	// $ [cursor]
+	if (getRow > 0) {
+	    System.out.println("CRAIG, row("+(getRow-1)+") wrapped?"+screen.getLineWrap(getRow-1));
+	    while (getRow > 0 && screen.getLineWrap(getRow-1)) {
+		System.out.println("CRAIG, previous line ("+(getRow-1)+") was wrapped.");
+		getRow--;
+	    }
+	} else {
+	    System.out.println("CRAIG, no previous line to get");
+	}
+
+	System.out.println("CRAIG, getRow="+getRow);
+	System.out.println("CRAIG, linewrap? "+screen.getLineWrap(getRow));
+	/*
+	System.out.println("CRAIG, cursorLine='"+cursorLine+"'");
+	cursorLine = mTerminal.getSelectedText(0, getRow, 1000, getRow);
+	*/
+
+	// FIXME, second hack for $ date\nMon Dec 12...\n$ [cursor]
+	if (cursorRow != 0 && !screen.getLineWrap(getRow)) {
+	    String tmp = mTerminal.getSelectedText(0,getRow,1000,getRow);
+	    cursorPosition += tmp.length();
+	    cursorLine += tmp;
+	}
+	
+	while (getRow < cursorRow && screen.getLineWrap(getRow)) {
+	    System.out.println("CRAIG, getRow="+getRow);
+	    System.out.println("CRAIG, linewrap? "+screen.getLineWrap(getRow));
+	    String tmp = mTerminal.getSelectedText(0,getRow,1000,getRow);
+	    //	    if (getRow < cursorRow) { 
+		cursorPosition += tmp.length();
+		//	    }
+	    cursorLine += tmp;
+	    System.out.println("CRAIG, cursorLine='"+cursorLine+"'");
+	    getRow++;
+	}
+
+	// third hack, FIXME
+	if (cursorPosition != cursorCol) { // because we added on a previous line or lines
+	    cursorLine += "\n";
+	    cursorPosition++;
+	}
+
+	String tmp =  mTerminal.getSelectedText(0, cursorRow, 1000, cursorRow);
+	System.out.println("CRAIG, cursorRow, tmp='"+tmp+"'");
+	if (!screen.getLineWrap(cursorRow) && cursorCol >= tmp.length()) {
+	    if (cursorCol > tmp.length()) {
+		tmp += " ";
+	    }
+	    if (cursorCol == tmp.length()) {
+		tmp += " ";
+	    }
+	    System.out.println("CRAIG, fixup cursorLine with extra spaces");
+	}
+	cursorLine += tmp;
+	
+	// now get lines after
+	getRow = cursorRow;
+	while (screen.getLineWrap(getRow)) {
+	    getRow++;
+	    cursorLine += mTerminal.getSelectedText(0,getRow,1000,getRow);
+	}
+
+	System.out.println("CRAIG, FINAL cursorLine='"+cursorLine+"'");
+	System.out.println("CRAIG, FINAL cursorPosition="+cursorPosition);
+	twc.text = cursorLine;
+	twc.cursorIndex = cursorPosition;
+	return twc;
+    }
+    
     /**
      * Part of the {@link ServiceConnection} interface. The service is bound with
      * {@link #bindService(Intent, ServiceConnection, int)} in {@link #onCreate(Bundle)} which will cause a call to this
@@ -882,71 +989,21 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 if (!mIsVisible) return;
                 if (getCurrentTermSession() == changedSession) {
 		    mTerminalView.onScreenUpdated();
-		    TerminalEmulator te = changedSession.getEmulator();
-		    TerminalBuffer screen = te.getScreen();
-		    int cursorPosition = te.getCursorCol();
-		    // TODO, in order to get proper cursor position within the big string we are making
-		    // we will need to build up the big string in chunks of each line when wrapped
-		    // and keep track of length of each line to know the right place to setSpan() the cursor
-		    // swap background/foreground colors there?
-		    Log.d("TERMUX_ACTIVITY","onTextChanged(), cursor row=" + te.getCursorRow() + ", col=" + te.getCursorCol());
+		    TextWithCursor twc = new TextWithCursor();
+		    getTwoLinesAtCursor(changedSession.getEmulator(), twc);
 		    
-		    // If a line is wrapped then work backwards until we get two full lines.
-		    // TODO if the cursor in the current row is in the middle of a group of
-		    // line wrapped lines though we would need to move forward to get them.
-		    String currentLine = "", beforeLines = "", lines = "", afterLines = "";
-		    int cursorCharLocation = -1; // have to keep track of this as we go along
-		    int cursorRow = te.getCursorRow();
-		    int cursorCol = te.getCursorCol();
-		    int startRow = te.getCursorRow()-1;
-		    if (startRow < 0) { startRow = 0; }
-		    int endRow = te.getCursorRow();
-		    while (screen.getLineWrap(startRow) && startRow > 1) { // TODO any danger here of not terminating?
-			startRow--;
-		    }
-		    while (screen.getLineWrap(endRow) && endRow < 1000) { // TODO how else to limit this? What is a reasonable max?
-			endRow++;
-		    }
-		    currentLine = screen.getSelectedText(0, cursorRow, 1000, cursorRow);
-		    if (startRow < cursorRow) {
-			beforeLines = screen.getSelectedText(0, startRow, 1000, cursorRow-1).trim();
-		    }
-		    if (endRow > cursorRow) {
-			afterLines = screen.getSelectedText(0, cursorRow+1, 1000, endRow).trim();
-		    }
-		    Log.d("TERMUX_ACTIVITY", "beforeLines("+beforeLines.length()+")='"+beforeLines+"'");
-		    Log.d("TERMUX_ACTIVITY", "afterLines("+afterLines.length()+")='"+afterLines+"'");
-		    cursorCharLocation = beforeLines.length() + te.getCursorCol();
-		    Log.d("TERMUX_ACTIVITY", "cursorCharLocation="+cursorCharLocation);
-		    Log.d("TERMUX_ACTIVITY", "currentLine("+currentLine.length()+")='"+currentLine+"'");
-		    
-		    //Log.e("TERMUX_ACTIVITY", "onTextChanged(), lines.toByteArray()="+Arrays.toString(lines.getBytes()));
-		    if (beforeLines.length() > 0) {
-			lines = beforeLines + "\n";
-			cursorCharLocation++;
-		    }
-		    lines += currentLine.trim();
-		    if (cursorCol >= currentLine.length()) { // especially if end of line was a bunch of spaces that got trimmed
-			char[] extra = new char[cursorCol - currentLine.length() + 1]; // plus 1 to allow for cursor at end of line.
-			Log.d("TERMUX_ACTIVITY", "extra is "+extra.length+" long");
-			Arrays.fill(extra, ' ');
-			lines += new String(extra);
-		    }
-		    if (afterLines.length() > 0) {
-			lines += afterLines;
-		    }
-		    Log.d("TERMUX_ACTIVITY", "onTextChanged(), lines='"+lines+"'");
+		    Log.d("TERMUX_ACTIVITY", "text='"+twc.text+"'");
+		    Log.d("TERMUX_ACTIVITY", "cursorIndex="+twc.cursorIndex);
 
-		    // TODO represent the cursor in this line of text somehow
-		    SpannableStringBuilder spannable = new SpannableStringBuilder(lines);
+		    SpannableStringBuilder spannable = new SpannableStringBuilder(twc.text);
 		    // TODO make colors configurable
-		    spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, lines.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+		    spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, twc.text.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
 		    // TODO sometimes (not sure when) I have seen the span be outside the length range. :( Really shouldn't happen with above
 		    // changing the current line with extra spaces at end.
-		    if (lines.length() > 0) {
-			spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), cursorCharLocation, cursorCharLocation + 1, Spannable.SPAN_POINT_POINT);
-			spannable.setSpan(new ForegroundColorSpan(Color.BLACK), cursorCharLocation, cursorCharLocation + 1, Spannable.SPAN_POINT_POINT);
+		    if (twc.text.length() > 0) {
+			spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), twc.cursorIndex, twc.cursorIndex + 1, Spannable.SPAN_POINT_POINT);
+			spannable.setSpan(new ForegroundColorSpan(Color.BLACK), twc.cursorIndex, twc.cursorIndex + 1, Spannable.SPAN_POINT_POINT);
 		    }
 		    lineView.setText(spannable);
 		    //lineView.setText(lines);
