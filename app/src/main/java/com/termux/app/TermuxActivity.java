@@ -168,6 +168,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     Canvas canvas;
     Properties gestures;
 
+    private void toggleViewVisibility(View v) {
+        if (v.getVisibility() == View.VISIBLE) {
+            v.setVisibility(View.INVISIBLE);
+        } else {
+            v.setVisibility(View.VISIBLE);
+        }
+        v.invalidate();
+    }
+
     private Handler mHandler = new Handler() {
 	    @Override
 	    public void handleMessage(Message msg) {
@@ -329,8 +338,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         setContentView(R.layout.drawer_layout);
 	gestureLayout = (RelativeLayout) findViewById(R.id.gesturelayout);
 	letterView = (TextView) findViewById(R.id.letterview);
-        lineView = (TextView) findViewById(R.id.lineview);
+    lineView = (TextView) findViewById(R.id.lineview);
 	gestureView = new GestureView(TermuxActivity.this);
+
+    // by default don't show letter or line view
+    // TODO make this a preference. eventually I want 2-line probably
+    gestureView.setVisibility(View.INVISIBLE);
+    letterView.setVisibility(View.INVISIBLE);
+    lineView.setVisibility(View.INVISIBLE);
+    
 	paint = new Paint();
 	path2 = new Path();
 	gestureLayout.addView(gestureView, new LayoutParams(
@@ -438,6 +454,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             return true;
         });
 
+        findViewById(R.id.toggle_gesture_button).setOnClickListener(v -> {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+                toggleViewVisibility(gestureView);
+                getDrawer().closeDrawers();
+            });
+            
         findViewById(R.id.toggle_keyboard_button).setOnClickListener(v -> {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0);
@@ -479,7 +502,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	}
 	TsEvent[] events = new TsEvent[300];
 	
-	boolean slash, dot, shift, control, escape, alt, caps = false;
+        boolean slash, dot, shift, control, escape, alt, caps, prefix = false;
 	
 	class Point {
 	    public int x;
@@ -748,17 +771,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		// first translate some special names to single character
 		if (value.equals("enter")) {
 		    toput = "" + (char)0x0d;
-		} else if (value.equals("prefix")) { // gesture prefix char
-		    // TODO make a bunch of things for this, for now just toggle the real console
-		    if (mTerminalView.getVisibility() == View.VISIBLE) {
-			mTerminalView.setVisibility(View.INVISIBLE);
-			letterView.setVisibility(View.INVISIBLE);
-			// TODO maybe fiddle with who has an on key listener and focus?
-			// instead of now I have both mTerminalView and lineView :(
-		    } else {
-			mTerminalView.setVisibility(View.VISIBLE);
-			letterView.setVisibility(View.VISIBLE);
-		    }
+		} else if (value.equals("prefix")) {
+            if (prefix) {
+                toggleViewVisibility(lineView);
+                toggleViewVisibility(mTerminalView);
+            }
+            prefix = !prefix;
+            // gesture prefix char
+            // TODO might be nice to have some graphical indication
+            // of being in prefix mode or control, shift, etc
 		    toput = "";
 		} else if (value.equals("tab")) {
 		    toput = "" + (char)0x09;
@@ -787,28 +808,40 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    toput = value;
 		    
 		    if (value.length() == 1) {
-			if (caps || shift) {
-			    toput = "" + (char)(toput.charAt(0) - 32);
-			}
-			if (shift && !caps) {
-			    shift = !shift;
-			}
-			if (control) {
-			    toput = "" + (char)(toput.charAt(0) - 96);
-			    control = !control;
-			}
+                if (caps || shift) {
+                    toput = "" + (char)(toput.charAt(0) - 32);
+                }
+                if (shift && !caps) {
+                    shift = !shift;
+                }
+                if (prefix) {
+                    // TODO for both 2-line and console view, need to manage keyboard input focus
+                    if (toput.equals("b")) { // big letter display
+                        toggleViewVisibility(letterView);
+                    } else if (toput.equals("i")) { // image display
+                        //                        toggleViewVisibility(graphicsView); // TODO
+                    } else if (toput.equals("g")) { // gesture layer
+                        toggleViewVisibility(gestureView);
+                    }
+                    prefix = !prefix; // regardless, get out of prefix mode
+                    toput = ""; // empty out the char, don't put anything
+                }
+                if (control) {
+                    toput = "" + (char)(toput.charAt(0) - 96);
+                    control = !control;
+                }
 		    }
 		}
 
-		Log.e(EmulatorDebug.LOG_TAG, "toput='"+toput+"', toput.length="+toput.length());
+		Log.e(EmulatorDebug.LOG_TAG, "toput='"+toput+"' toput.length="+toput.length());
 		    
 		if (toput.length() > 0) {
 		    TerminalSession session = getCurrentTermSession();
 		    if (session != null) {
-			if (session.isRunning()) {
-			    // todo check that toput is "disaplayable" :)
-			    session.write(toput);
-			}
+                if (session.isRunning()) {
+                    // todo check that toput is "disaplayable" :)
+                    session.write(toput);
+                }
 		    }
 		}
 		// TODO this is odd, but wanted to avoid printing out OD OC etc for arrow keys
