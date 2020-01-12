@@ -43,6 +43,7 @@ import android.util.TypedValue;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -346,6 +347,13 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     gestureView.setVisibility(View.INVISIBLE);
     letterView.setVisibility(View.INVISIBLE);
     lineView.setVisibility(View.INVISIBLE);
+
+    // setup lineView key listener
+    lineView.setOnKeyListener((View.OnKeyListener) new Object() {
+            boolean onKey(View v, int keyCode, KeyEvent event)  {
+                return mTerminalView.onKeyPreIme(keyCode, event);
+            }
+        });
     
 	paint = new Paint();
 	path2 = new Path();
@@ -772,6 +780,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		if (value.equals("enter")) {
 		    toput = "" + (char)0x0d;
 		} else if (value.equals("prefix")) {
+            // TODO if in prefix mode already and keys are up or down or home or end
+            // then move 2-line "first line" around but keep current line (prompt)
+            // as second line in 2-line display
             if (prefix) {
                 toggleViewVisibility(lineView);
                 toggleViewVisibility(mTerminalView);
@@ -901,8 +912,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
     }
 
     public class TextWithCursor {
-	public String text;
-	public int cursorIndex;
+        public String text;
+        public int cursorIndex;
     }
     
     public static TextWithCursor getTwoLinesAtCursor(TerminalEmulator mTerminal, TextWithCursor twc) { // TODO change mTerminal to just terminal name
