@@ -171,11 +171,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     private void toggleViewVisibility(View v) {
         if (v.getVisibility() == View.VISIBLE) {
+            Log.e("CRAIG", "toggleViewVisibility("+v+"), was visible, making invisible");
             v.setVisibility(View.INVISIBLE);
         } else {
+            Log.e("CRAIG", "toggleViewVisibility("+v+"), was invisible, making visible");
             v.setVisibility(View.VISIBLE);
         }
         v.invalidate();
+        v.requestFocus(); // maybe helps with hardware keyboard in lineView?
     }
 
     private Handler mHandler = new Handler() {
@@ -344,13 +347,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     // by default don't show letter or line view
     // TODO make this a preference. eventually I want 2-line probably
-    gestureView.setVisibility(View.INVISIBLE);
+    //gestureView.setVisibility(View.INVISIBLE);
     letterView.setVisibility(View.INVISIBLE);
     lineView.setVisibility(View.INVISIBLE);
 
     // setup lineView key listener
-    lineView.setOnKeyListener((View.OnKeyListener) new Object() {
-            boolean onKey(View v, int keyCode, KeyEvent event)  {
+    gestureView.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event)  {
+                Log.e("CRAIG", "lineView, onKey, keyCode="+keyCode+", event="+event);
                 return mTerminalView.onKeyPreIme(keyCode, event);
             }
         });
@@ -784,6 +789,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             // then move 2-line "first line" around but keep current line (prompt)
             // as second line in 2-line display
             if (prefix) {
+                Log.e("CRAIG", "prefix-prefix entered, toggle visibility of lineView and mTerminalView");
                 toggleViewVisibility(lineView);
                 toggleViewVisibility(mTerminalView);
             }
@@ -1033,24 +1039,26 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 if (!mIsVisible) return;
                 if (getCurrentTermSession() == changedSession) {
 		    mTerminalView.onScreenUpdated();
-		    TextWithCursor twc = new TextWithCursor();
-		    getTwoLinesAtCursor(changedSession.getEmulator(), twc);
-		    
-		    Log.d("TERMUX_ACTIVITY", "text='"+twc.text+"'");
-		    Log.d("TERMUX_ACTIVITY", "cursorIndex="+twc.cursorIndex);
-
-		    SpannableStringBuilder spannable = new SpannableStringBuilder(twc.text);
-		    // TODO make colors configurable
-		    spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, twc.text.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-		    // TODO sometimes (not sure when) I have seen the span be outside the length range. :( Really shouldn't happen with above
-		    // changing the current line with extra spaces at end.
-		    if (twc.text.length() > 0) {
-			spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), twc.cursorIndex, twc.cursorIndex + 1, Spannable.SPAN_POINT_POINT);
-			spannable.setSpan(new ForegroundColorSpan(Color.BLACK), twc.cursorIndex, twc.cursorIndex + 1, Spannable.SPAN_POINT_POINT);
-		    }
-		    lineView.setText(spannable);
-		    //lineView.setText(lines);
+            // TODO refactor this out to it's own method so I can call it from when we toggle BACK to lineView visible
+            if (lineView.getVisibility() == View.VISIBLE) {
+                TextWithCursor twc = new TextWithCursor();
+                getTwoLinesAtCursor(changedSession.getEmulator(), twc);
+                
+                Log.d("TERMUX_ACTIVITY", "text='"+twc.text+"'");
+                Log.d("TERMUX_ACTIVITY", "cursorIndex="+twc.cursorIndex);
+                
+                SpannableStringBuilder spannable = new SpannableStringBuilder(twc.text);
+                // TODO make colors configurable
+                spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, twc.text.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                
+                // TODO sometimes (not sure when) I have seen the span be outside the length range. :( Really shouldn't happen with above
+                // changing the current line with extra spaces at end.
+                if (twc.text.length() > 0) {
+                    spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), twc.cursorIndex, twc.cursorIndex + 1, Spannable.SPAN_POINT_POINT);
+                    spannable.setSpan(new ForegroundColorSpan(Color.BLACK), twc.cursorIndex, twc.cursorIndex + 1, Spannable.SPAN_POINT_POINT);
+                }
+                lineView.setText(spannable);
+            }
 		}
             }
 
