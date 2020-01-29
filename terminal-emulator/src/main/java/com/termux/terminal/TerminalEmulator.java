@@ -2328,6 +2328,57 @@ public final class TerminalEmulator {
         return mScreen.getSelectedText(x1, y1, x2, y2);
     }
 
+    public String getLineAt(int row) {
+        System.out.println("getLineAt("+row+")");
+        int startRow = row;
+        int endRow = mCursorRow;
+        int firstRow = -mScreen.getActiveTranscriptRows();
+
+        System.out.println("startRow="+startRow+", firstRow="+firstRow+", line='"+mScreen.getSelectedText(0, startRow, mColumns, startRow)+"'");
+        System.out.println("lineWrap("+(startRow-1)+")="+mScreen.getLineWrap(startRow-1));
+
+        while (startRow > firstRow && mScreen.getLineWrap(startRow-1)) {
+            startRow--;
+            System.out.println("while: startRow="+startRow+", firstRow="+firstRow+", line='"+mScreen.getSelectedText(0, startRow, mColumns, startRow)+"'");
+            if (startRow > firstRow) {
+                System.out.println("while: lineWrap("+(startRow-1)+")="+mScreen.getLineWrap(startRow-1));
+            } else {
+                System.out.println("while: startRow("+startRow+") <= firstRow("+firstRow+")");
+            }
+        }
+        // what is the max number of rows?
+        System.out.println("endRow="+endRow+", linewrap?"+mScreen.getLineWrap(endRow));
+        while (endRow < mRows && mScreen.getLineWrap(endRow)) {
+            endRow++;
+            System.out.println("while: endRow="+endRow+", linewrap?"+mScreen.getLineWrap(endRow));
+        }
+        return mScreen.getSelectedText(0, startRow, mColumns, endRow);
+    }
+
+    public String getCurrentLine() {
+        return getLineAt(mCursorRow);
+    }
+    
+    public String getPreviousLine() {
+        System.out.println("getPreviousLine()");
+        // first find the previous line starting point :)
+        int startRow = mCursorRow - 1;
+        int endRow = startRow;
+        int firstRow = -mScreen.getActiveTranscriptRows();
+        
+        System.out.println("startRow="+startRow+", line='"+mScreen.getSelectedText(0, startRow, mColumns, startRow)+"'");
+
+        System.out.println("lineWrap("+(startRow-1)+")="+mScreen.getLineWrap(startRow-1));
+
+        while (startRow > firstRow && !mScreen.getLineWrap(startRow-1)) {
+            startRow--;
+            System.out.println("while: startRow="+startRow+", line='"+mScreen.getSelectedText(0, startRow, mColumns, startRow)+"'");
+            System.out.println("while: lineWrap("+startRow+")="+mScreen.getLineWrap(startRow));
+        }
+
+        return "";
+    }
+
     /** Get the terminal session's title (null if not set). */
     public String getTitle() {
         return mTitle;

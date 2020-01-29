@@ -113,7 +113,7 @@ public class ScreenBufferTest extends TerminalTestCase {
 	return twc;
     }
     
-    public void testGetTwoLines() {
+    public void xtestGetTwoLines() {
 	TextWithCursor twc = new TextWithCursor();
 
 	withTerminalSized(3,6).enterString("abcdef\r\nghijkl");
