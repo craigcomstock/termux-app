@@ -364,4 +364,13 @@ public class TerminalTest extends TerminalTestCase {
         assertEquals("abcdefghijklmno", currentLine);
     }
 
+    public void testGetPreviousLine() {
+        System.out.println("testGetPreviousLine()");
+        withTerminalSized(3, 3);
+        enterString("abc");
+        enterString("de\n\r");
+        enterString("gh");
+        assertEquals("gh", mTerminal.getCurrentLine());
+        assertEquals("abcde", mTerminal.getPreviousLine());
+    }
 }
