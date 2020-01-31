@@ -1041,21 +1041,38 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		    mTerminalView.onScreenUpdated();
             // TODO refactor this out to it's own method so I can call it from when we toggle BACK to lineView visible
             if (lineView.getVisibility() == View.VISIBLE) {
-                TextWithCursor twc = new TextWithCursor();
-                getTwoLinesAtCursor(changedSession.getEmulator(), twc);
+                TerminalEmulator emulator = changedSession.getEmulator();
+                String previousLine = emulator.getPreviousLine();
+                String currentLine = emulator.getCurrentLine();
+                int cursorCol = previousLine.length() + emulator.getCursorCol();
+
+                Log.d("TERMUX_ACTIVITY", "currentLine.length()="+currentLine.length()+", emulator.getCursorCol()="+emulator.getCursorCol());
+                while (currentLine.length() <= emulator.getCursorCol()) {
+                    currentLine += " ";
+                    Log.d("TERMUX_ACTIVITY", "while: currentLine.length()="+currentLine.length()+", emulator.getCursorCol()="+emulator.getCursorCol());
+                }
                 
-                Log.d("TERMUX_ACTIVITY", "text='"+twc.text+"'");
-                Log.d("TERMUX_ACTIVITY", "cursorIndex="+twc.cursorIndex);
+                String text = previousLine;
+                if (previousLine.length() > 0) {
+                    text += "\n\r";
+                    cursorCol += 2;
+                }
+                text += currentLine;
                 
-                SpannableStringBuilder spannable = new SpannableStringBuilder(twc.text);
+                Log.d("TERMUX_ACTIVITY", "previousLine='"+previousLine+"'");
+                Log.d("TERMUX_ACTIVITY", "currentLine='"+currentLine+"'");
+                Log.d("TERMUX_ACTIVITY", "text='"+text+"'");
+                Log.d("TERMUX_ACTIVITY", "cursorCol="+cursorCol);
+                
+                SpannableStringBuilder spannable = new SpannableStringBuilder(text);
                 // TODO make colors configurable
-                spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, twc.text.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, text.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                 
                 // TODO sometimes (not sure when) I have seen the span be outside the length range. :( Really shouldn't happen with above
                 // changing the current line with extra spaces at end.
-                if (twc.text.length() > 0) {
-                    spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), twc.cursorIndex, twc.cursorIndex + 1, Spannable.SPAN_POINT_POINT);
-                    spannable.setSpan(new ForegroundColorSpan(Color.BLACK), twc.cursorIndex, twc.cursorIndex + 1, Spannable.SPAN_POINT_POINT);
+                if (text.length() > 0) {
+                    spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), cursorCol, cursorCol + 1, Spannable.SPAN_POINT_POINT);
+                    spannable.setSpan(new ForegroundColorSpan(Color.BLACK), cursorCol, cursorCol + 1, Spannable.SPAN_POINT_POINT);
                 }
                 lineView.setText(spannable);
             }

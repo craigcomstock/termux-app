@@ -373,4 +373,14 @@ public class TerminalTest extends TerminalTestCase {
         assertEquals("gh", mTerminal.getCurrentLine());
         assertEquals("abcde", mTerminal.getPreviousLine());
     }
+
+    public void testGetCurrentLineWithSpaces() {
+        System.out.println("testGetCurrentLineWithSpaces()");
+        withTerminalSized(3, 3);
+        enterString("a ");
+        // In TerminalBuffer getSelectedText() if the line is not wrapped
+        // like the current line will likely not be
+        // then trailing spaces are removed
+        assertEquals("a", mTerminal.getCurrentLine());
+    }
 }

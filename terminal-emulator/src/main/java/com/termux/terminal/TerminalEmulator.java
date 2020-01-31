@@ -2334,8 +2334,11 @@ public final class TerminalEmulator {
         int endRow = row;
         int firstRow = -mScreen.getActiveTranscriptRows();
 
+        System.out.println("mColumns="+mColumns);
         System.out.println("startRow="+startRow+", firstRow="+firstRow+", line='"+mScreen.getSelectedText(0, startRow, mColumns, startRow)+"'");
-        System.out.println("lineWrap("+(startRow-1)+")="+mScreen.getLineWrap(startRow-1));
+        if (startRow > firstRow) {
+            System.out.println("lineWrap("+(startRow-1)+")="+mScreen.getLineWrap(startRow-1));
+        }
 
         while (startRow > firstRow && mScreen.getLineWrap(startRow-1)) {
             startRow--;
@@ -2364,6 +2367,9 @@ public final class TerminalEmulator {
         System.out.println("getPreviousLine()");
         int row = mCursorRow - 1;
         int firstRow = -mScreen.getActiveTranscriptRows();
+        if (row < firstRow) {
+            return "";  // no previous line exists
+        }
 
         // so if the row previous to current row is not line wrapped, it is
         // part of the previous line
