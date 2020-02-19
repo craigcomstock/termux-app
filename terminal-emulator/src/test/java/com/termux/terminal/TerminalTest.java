@@ -383,4 +383,18 @@ public class TerminalTest extends TerminalTestCase {
         // then trailing spaces are removed
         assertEquals("a", mTerminal.getCurrentLine());
     }
+
+    public void xtestGetPreviousLineAfterCtrlL() {
+        System.out.println("testGetPreviousLineAfterCtrlL()");
+        withTerminalSized(3, 3);
+        enterString("ab\n\r");
+        enterString("cd\n\r");
+        enterString("ef\n\r");
+        enterString("gh\n\r");
+        System.out.println("cursor is at row="+mTerminal.getCursorRow()+", col="+mTerminal.getCursorCol());
+        enterString("ij");
+        enterString("\u000c");
+        assertEquals("", mTerminal.getPreviousLine()); 
+        assertEquals("ij", mTerminal.getCurrentLine());
+    }
 }

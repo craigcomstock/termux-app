@@ -792,6 +792,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 Log.e("CRAIG", "prefix-prefix entered, toggle visibility of lineView and mTerminalView");
                 toggleViewVisibility(lineView);
                 toggleViewVisibility(mTerminalView);
+                updateLineView();
             }
             prefix = !prefix;
             // gesture prefix char
@@ -917,111 +918,49 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
     }
 
-    public class TextWithCursor {
-        public String text;
-        public int cursorIndex;
-    }
-    
-    public static TextWithCursor getTwoLinesAtCursor(TerminalEmulator mTerminal, TextWithCursor twc) { // TODO change mTerminal to just terminal name
-	TerminalBuffer screen = mTerminal.getScreen();
-	int cursorRow = mTerminal.getCursorRow();
-	int getRow = cursorRow;
-	int cursorCol = mTerminal.getCursorCol();
-	int cursorPosition = cursorCol; // for now, in the current line this is right
-	String previousLine = "";
-	String cursorLine = "";
+    private void updateLineView() {
+        if (lineView.getVisibility() == View.VISIBLE) {
+            TerminalSession session = getCurrentTermSession();
+            if (session == null) { return; }
+            TerminalEmulator emulator = session.getEmulator();
+            if (emulator == null) { return; }
 
-	/*
-	System.out.println("CRAIG, === GET TWO LINES AT CURSOR ===");
-	System.out.println("CRAIG, cursorRow="+cursorRow+", cursorCol="+cursorCol);
-	for (int i=0; i<6; i++) {
-	    System.out.println("CRAIG, line "+i+" '"+mTerminal.getSelectedText(0,i,1000,i) + "'" + (screen.getLineWrap(i) ? "->" : " . "));
-	}
-	*/
-	
-	// If I am reading the TerminalBuffer.java code right I think getSelectedText() will limit the X2 value to the number of columns
-	/*
-            if (row == selY2) {
-                x2 = selX2 + 1;
-                if (x2 > columns) x2 = columns;
-            } else {
-                x2 = columns;
+            int cursorRow = emulator.getCursorRow();
+            String previousLine = (cursorRow == 0) ? "" : emulator.getPreviousLine();
+            String currentLine = emulator.getCurrentLine();
+            int cursorCol = previousLine.length() + emulator.getCursorCol();
+
+            Log.d("TERMUX_ACTIVITY", "currentLine.length()="+currentLine.length()+", emulator.getCursorCol()="+emulator.getCursorCol());
+            while (currentLine.length() <= emulator.getCursorCol()) {
+                currentLine += " ";
+                Log.d("TERMUX_ACTIVITY", "while: currentLine.length()="+currentLine.length()+", emulator.getCursorCol()="+emulator.getCursorCol());
             }
-	*/
-	// hack, start with one row previous
-	getRow--;
-	if (getRow < 0) { getRow = 0; }
-	// end hack :p TODO put back in a unit test with a test case for
-	// $ date
-	// Mon Dec 23...
-	// $ [cursor]
-	if (getRow > 0) {
-	    System.out.println("CRAIG, row("+(getRow-1)+") wrapped?"+screen.getLineWrap(getRow-1));
-	    while (getRow > 0 && screen.getLineWrap(getRow-1)) {
-		System.out.println("CRAIG, previous line ("+(getRow-1)+") was wrapped.");
-		getRow--;
-	    }
-	} else {
-	    System.out.println("CRAIG, no previous line to get");
-	}
-
-	System.out.println("CRAIG, getRow="+getRow);
-	System.out.println("CRAIG, linewrap? "+screen.getLineWrap(getRow));
-	/*
-	System.out.println("CRAIG, cursorLine='"+cursorLine+"'");
-	cursorLine = mTerminal.getSelectedText(0, getRow, 1000, getRow);
-	*/
-
-	// FIXME, second hack for $ date\nMon Dec 12...\n$ [cursor]
-	if (cursorRow != 0 && !screen.getLineWrap(getRow)) {
-	    String tmp = mTerminal.getSelectedText(0,getRow,1000,getRow);
-	    cursorPosition += tmp.length();
-	    cursorLine += tmp;
-	}
-	
-	while (getRow < cursorRow && screen.getLineWrap(getRow)) {
-	    System.out.println("CRAIG, getRow="+getRow);
-	    System.out.println("CRAIG, linewrap? "+screen.getLineWrap(getRow));
-	    String tmp = mTerminal.getSelectedText(0,getRow,1000,getRow);
-	    //	    if (getRow < cursorRow) { 
-		cursorPosition += tmp.length();
-		//	    }
-	    cursorLine += tmp;
-	    System.out.println("CRAIG, cursorLine='"+cursorLine+"'");
-	    getRow++;
-	}
-
-	// third hack, FIXME
-	if (cursorPosition != cursorCol) { // because we added on a previous line or lines
-	    cursorLine += "\n";
-	    cursorPosition++;
-	}
-
-	String tmp =  mTerminal.getSelectedText(0, cursorRow, 1000, cursorRow);
-	System.out.println("CRAIG, cursorRow, tmp='"+tmp+"'");
-	if (!screen.getLineWrap(cursorRow) && cursorCol >= tmp.length()) {
-	    if (cursorCol > tmp.length()) {
-		tmp += " ";
-	    }
-	    if (cursorCol == tmp.length()) {
-		tmp += " ";
-	    }
-	    System.out.println("CRAIG, fixup cursorLine with extra spaces");
-	}
-	cursorLine += tmp;
-	
-	// now get lines after
-	getRow = cursorRow;
-	while (screen.getLineWrap(getRow)) {
-	    getRow++;
-	    cursorLine += mTerminal.getSelectedText(0,getRow,1000,getRow);
-	}
-
-	System.out.println("CRAIG, FINAL cursorLine='"+cursorLine+"'");
-	System.out.println("CRAIG, FINAL cursorPosition="+cursorPosition);
-	twc.text = cursorLine;
-	twc.cursorIndex = cursorPosition;
-	return twc;
+                
+            String text = previousLine;
+            if (previousLine.length() > 0) {
+                text += "\n\r";
+                cursorCol += 2;
+            }
+            text += currentLine;
+                
+            Log.d("TERMUX_ACTIVITY", "previousLine='"+previousLine+"'");
+            Log.d("TERMUX_ACTIVITY", "currentLine='"+currentLine+"'");
+            Log.d("TERMUX_ACTIVITY", "text='"+text+"'");
+            Log.d("TERMUX_ACTIVITY", "row="+emulator.getCursorRow()+", col="+emulator.getCursorCol());
+            Log.d("TERMUX_ACTIVITY", "cursorCol="+cursorCol);
+                
+            SpannableStringBuilder spannable = new SpannableStringBuilder(text);
+            // TODO make colors configurable
+            spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, text.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                
+            // TODO sometimes (not sure when) I have seen the span be outside the length range. :( Really shouldn't happen with above
+            // changing the current line with extra spaces at end.
+            if (text.length() > 0) {
+                spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), cursorCol, cursorCol + 1, Spannable.SPAN_POINT_POINT);
+                spannable.setSpan(new ForegroundColorSpan(Color.BLACK), cursorCol, cursorCol + 1, Spannable.SPAN_POINT_POINT);
+            }
+            lineView.setText(spannable);
+        }
     }
     
     /**
@@ -1038,45 +977,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             public void onTextChanged(TerminalSession changedSession) {
                 if (!mIsVisible) return;
                 if (getCurrentTermSession() == changedSession) {
-		    mTerminalView.onScreenUpdated();
-            // TODO refactor this out to it's own method so I can call it from when we toggle BACK to lineView visible
-            if (lineView.getVisibility() == View.VISIBLE) {
-                TerminalEmulator emulator = changedSession.getEmulator();
-                String previousLine = emulator.getPreviousLine();
-                String currentLine = emulator.getCurrentLine();
-                int cursorCol = previousLine.length() + emulator.getCursorCol();
-
-                Log.d("TERMUX_ACTIVITY", "currentLine.length()="+currentLine.length()+", emulator.getCursorCol()="+emulator.getCursorCol());
-                while (currentLine.length() <= emulator.getCursorCol()) {
-                    currentLine += " ";
-                    Log.d("TERMUX_ACTIVITY", "while: currentLine.length()="+currentLine.length()+", emulator.getCursorCol()="+emulator.getCursorCol());
+                    mTerminalView.onScreenUpdated();
+                    updateLineView();
                 }
-                
-                String text = previousLine;
-                if (previousLine.length() > 0) {
-                    text += "\n\r";
-                    cursorCol += 2;
-                }
-                text += currentLine;
-                
-                Log.d("TERMUX_ACTIVITY", "previousLine='"+previousLine+"'");
-                Log.d("TERMUX_ACTIVITY", "currentLine='"+currentLine+"'");
-                Log.d("TERMUX_ACTIVITY", "text='"+text+"'");
-                Log.d("TERMUX_ACTIVITY", "cursorCol="+cursorCol);
-                
-                SpannableStringBuilder spannable = new SpannableStringBuilder(text);
-                // TODO make colors configurable
-                spannable.setSpan(new ForegroundColorSpan(Color.YELLOW),0, text.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                
-                // TODO sometimes (not sure when) I have seen the span be outside the length range. :( Really shouldn't happen with above
-                // changing the current line with extra spaces at end.
-                if (text.length() > 0) {
-                    spannable.setSpan(new BackgroundColorSpan(Color.YELLOW), cursorCol, cursorCol + 1, Spannable.SPAN_POINT_POINT);
-                    spannable.setSpan(new ForegroundColorSpan(Color.BLACK), cursorCol, cursorCol + 1, Spannable.SPAN_POINT_POINT);
-                }
-                lineView.setText(spannable);
-            }
-		}
             }
 
             @Override
