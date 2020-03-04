@@ -592,7 +592,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		// TODO maybe add the minimum chunk ratio as a config in gesture.conf?
 		// For big screen phone like nexus5 view_width / 6 was good
 		// but for kc05 watch I need something a bit more forgiving view_width / 4? (nope, try 5)
-		String output = handleGesture(gs, view_width, view_height, view_width / 6);
+        // watch 240x240, chunk (width/4)=60
+        // nexus5 1080x1920, chunk (width/6)=320
+		String output = handleGesture(gs, view_width, view_height, (int)(view_width / 4.5));
 		Log.d(EmulatorDebug.LOG_TAG, "handleGesture()=>'"+output+"'");
 		gs = new Gesture();
 		gi = 0;
@@ -639,7 +641,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
 	// TODO UTF-8, other character set support? Use a String instead? auto-support for such things?
 	String handleGesture(Gesture gs, int screen_width, int screen_height, int minimum_chunk_size) {
-	    Log.e("TERMUX_ACTIVITY", "handleGesture(), screen_width="+screen_width+", screen_height="+screen_height+", minimum_chunk_size="+minimum_chunk_size);
+        //	    Log.e("TERMUX_ACTIVITY", "handleGesture(), screen_width="+screen_width+", screen_height="+screen_height+", minimum_chunk_size="+minimum_chunk_size);
 
 	    String toput = "";
 	    int MAX_KEYS = 50;
@@ -661,7 +663,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    }
 	    int nw, ne, se, sw;
 	    nw = ne = se = sw = 0;
-	    Log.e("TERMUX_ACTIVITY", "handleGesture(), numPoints="+gs.numPoints+", minx="+gs.minx+", maxx="+gs.maxx+", miny="+gs.miny+", maxy="+gs.maxy+", sx="+sx+", sy="+sy);
+        //	    Log.e("TERMUX_ACTIVITY", "handleGesture(), numPoints="+gs.numPoints+", minx="+gs.minx+", maxx="+gs.maxx+", miny="+gs.miny+", maxy="+gs.maxy+", sx="+sx+", sy="+sy);
 	    for (; i < gs.numPoints; i++) {
 		rx = gs.points[i].x - gs.minx;
 		tx = rx / sx;
@@ -673,7 +675,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		if (ty == 3) {
 		    ty = 2;
 		}
-		Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), rx="+rx+", tx="+tx+", ry="+ry+", ty="+ty);
+        //		Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), rx="+rx+", tx="+tx+", ry="+ry+", ty="+ty);
 		
 		if (kxi == -1 || key_x[kxi] != tx) {
 		    key_x[++kxi] = tx;
@@ -765,7 +767,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    }
 
 	    // at this point we have our key, I think, let's just print it out and see if that much works. :+1:
-	    Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), key='"+key+"'");
+        Log.e(EmulatorDebug.LOG_TAG, "handleGesture(), key='"+key+"'");
 
 	    if (gestures == null) {
 		// TODO this might slow down the first recog but how else to do it?
