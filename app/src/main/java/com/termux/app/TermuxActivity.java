@@ -559,7 +559,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 		
 		int x = (int)event.getX();
 		int y = (int)event.getY();
-		Log.e("GESTURE", "ACTION_DOWN, x="+x+", y="+y);
+        //		Log.e("GESTURE", "ACTION_DOWN, x="+x+", y="+y);
 		
 		path2.reset(); // each gesture is separate
 		path2.moveTo(x, y);
@@ -604,7 +604,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 		int x = (int)event.getX();
 		int y = (int)event.getY();
-		Log.e("GESTURE", "ACTION_MOVE, x="+x+", y="+y);
+        //		Log.e("GESTURE", "ACTION_MOVE, x="+x+", y="+y);
 		
 		path2.lineTo(event.getX(), event.getY());
 		pathWithPaint.setPath(path2);
@@ -880,7 +880,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 	@Override
 	protected void onDraw(Canvas canvas) {
 	    super.onDraw(canvas);
-	    Log.e("GESTURE", "onDraw(), DrawingClassArrayList.size="+DrawingClassArrayList.size());
+        //	    Log.e("GESTURE", "onDraw(), DrawingClassArrayList.size="+DrawingClassArrayList.size());
 	    
 	    if (DrawingClassArrayList.size() > 0) {
 		canvas.drawPath(
