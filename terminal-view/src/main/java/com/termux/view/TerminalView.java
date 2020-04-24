@@ -893,7 +893,9 @@ public final class TerminalView extends View {
                 android.R.attr.textSelectHandleWindowStyle);
             mContainer.setSplitTouchEnabled(true);
             mContainer.setClippingEnabled(false);
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             mContainer.setWindowLayoutType(WindowManager.LayoutParams.TYPE_APPLICATION_SUB_PANEL);
+}
             mContainer.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
             mContainer.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
 
@@ -1215,6 +1217,7 @@ public final class TerminalView extends View {
                 }
 
             };
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             mActionMode = startActionMode(new ActionMode.Callback2() {
                 @Override
                 public boolean onCreateActionMode(ActionMode mode, Menu menu) {
@@ -1253,6 +1256,9 @@ public final class TerminalView extends View {
                     outRect.set(x1, y1 + mHandleHeight, x2, y2 + mHandleHeight);
                 }
             }, ActionMode.TYPE_FLOATING);
+} else {
+  mActionMode = startActionMode(callback);
+}
 
         }
 
@@ -1484,7 +1490,9 @@ public final class TerminalView extends View {
         @Override
         public void run() {
             if (mActionMode != null) {
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 mActionMode.hide(0);  // hide off.
+}
             }
         }
     };
@@ -1492,7 +1500,9 @@ public final class TerminalView extends View {
     void hideFloatingToolbar(int duration) {
         if (mActionMode != null) {
             removeCallbacks(mShowFloatingToolbar);
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             mActionMode.hide(duration);
+}
         }
     }
 
