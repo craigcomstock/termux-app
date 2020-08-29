@@ -4,13 +4,9 @@ android:
   components:
     - build-tools-28.0.3
     - android-28
-    - add-on
-    - extra
-    - ndk
+    - ndk-bundle
   licenses:
     - 'android-sdk-license-.+'
     - 'google-gdk-license-.+'
     - 'android-ndk-license-.+'
-
-script: sdkmanager --list
 
