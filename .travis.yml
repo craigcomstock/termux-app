@@ -12,4 +12,5 @@ android:
     - 'google-gdk-license-.+'
     - 'android-ndk-license-.+'
 
-script: sdkmanager --list-components
+script: sdkmanager --list
+
