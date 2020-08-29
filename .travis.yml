@@ -8,5 +8,4 @@ android:
   licenses:
     - 'android-sdk-license-.+'
     - 'google-gdk-license-.+'
-    - 'android-ndk-license-.+'
-
+script: yes | sdkmanager --licenses && ./gradlew assembleDebug
