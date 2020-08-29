@@ -6,6 +6,8 @@ android:
     - android-28
     - add-on
     - extra
+    - ndk-bundle
   licenses:
     - 'android-sdk-license-.+'
     - 'google-gdk-license-.+'
+    - 'android-ndk-license-.+'
