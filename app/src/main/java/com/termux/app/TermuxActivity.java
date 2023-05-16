@@ -466,6 +466,14 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
 	}
 	Gesture gs = new Gesture();
 	int gi = 0;
+    int view_width, view_height = 0;
+
+    @Override
+    protected void onSizeChanged(int xNew, int yNew, int xOld, int yOld) {
+            super.onSizeChanged(xNew, yNew, xOld, yOld);
+            view_width = xNew;
+            view_height = yNew;
+    }
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
