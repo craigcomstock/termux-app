@@ -1534,6 +1534,15 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                             toput = "" + (char)(toput.charAt(0) - 96);
                             control = !control;
                         }
+                    } // value is length 1, simple char
+
+                    if (prefix) {
+                        // font size controls to replace pinch zoom
+                        if (toput.equals("\u001BOA")) // up
+                            mTermuxTerminalViewClient.changeFontSize(true);
+                        if (toput.equals("\u001BOB")) // down
+                            mTermuxTerminalViewClient.changeFontSize(false);
+                        prefix = !prefix;
                     }
                 }
 
