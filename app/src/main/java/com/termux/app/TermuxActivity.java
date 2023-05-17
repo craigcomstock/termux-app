@@ -296,7 +296,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         setTermuxTerminalViewAndClients();
 
         // TODO, for gesture branch I never want this toolbar since gestures handle these extra keys nicely
-        setTerminalToolbarView(savedInstanceState);
+        //setTerminalToolbarView(savedInstanceState);
 
         setSettingsButtonView();
 
@@ -1039,7 +1039,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
 
         setMargins();
-        setTerminalToolbarHeight();
+        //setTerminalToolbarHeight();
 
         FileReceiverActivity.updateFileReceiverActivityComponentsState(this);
 
