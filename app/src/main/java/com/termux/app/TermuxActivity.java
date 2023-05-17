@@ -9,6 +9,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -17,6 +22,7 @@ import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -65,6 +71,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager.widget.ViewPager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
@@ -194,6 +201,14 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     private static final String LOG_TAG = "TermuxActivity";
 
+    // gesture graphics things
+    RelativeLayout gestureLayout;
+    Paint paint;
+    View view;
+    Path path2;
+    Bitmap bitmap;
+    Canvas canvas;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Logger.logDebug(LOG_TAG, "onCreate");
@@ -214,6 +229,20 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_termux);
+
+        gestureLayout = (RelativeLayout) findViewById(R.id.gesturelayout);
+        view = new SketchSheetView(TermuxActivity.this);
+        paint = new Paint();
+        path2 = new Path();
+        gestureLayout.addView(view, new ViewGroup.LayoutParams(
+            RelativeLayout.LayoutParams.MATCH_PARENT,
+            RelativeLayout.LayoutParams.MATCH_PARENT));
+        paint.setDither(true);
+        paint.setColor(Color.parseColor("#FF6600"));
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeJoin(Paint.Join.ROUND);
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setStrokeWidth(8);
 
         // Load termux shared preferences
         // This will also fail if TermuxConstants.TERMUX_PACKAGE_NAME does not equal applicationId
@@ -1008,6 +1037,63 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         Intent intent = new Intent(context, TermuxActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         return intent;
+    }
+
+    class SketchSheetView extends View {
+        public SketchSheetView(Context context) {
+            super(context);
+            bitmap = Bitmap.createBitmap(820,480,Bitmap.Config.ARGB_4444);
+            canvas = new Canvas(bitmap);
+            //	    this.setBackgroundColor(Color.WHITE);
+        }
+        private ArrayList<DrawingClass> DrawingClassArrayList = new ArrayList<DrawingClass>();
+
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            DrawingClass pathWithPaint = new DrawingClass();
+            canvas.drawPath(path2, paint);
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                path2.reset(); // each gesture is separate
+                path2.moveTo(event.getX(), event.getY());
+                //		path2.moveTo(event.getX(), event.getY());
+                //		path2.lineTo(event.getX(), event.getY());
+            } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                path2.lineTo(event.getX(), event.getY());
+                pathWithPaint.setPath(path2);
+                pathWithPaint.setPaint(paint);
+                DrawingClassArrayList.add(pathWithPaint);
+            }
+            invalidate();
+            return true;
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            if (DrawingClassArrayList.size() > 0) {
+                canvas.drawPath(
+                    DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPath(),
+                    DrawingClassArrayList.get(DrawingClassArrayList.size() - 1).getPaint());
+            }
+        }
+    }
+
+    public class DrawingClass {
+        Path DrawingClassPath;
+        Paint DrawingClassPaint;
+
+        public Path getPath() {
+            return DrawingClassPath;
+        }
+        public void setPath(Path path) {
+            this.DrawingClassPath = path;
+        }
+        public Paint getPaint() {
+            return DrawingClassPaint;
+        }
+        public void setPaint(Paint paint) {
+            this.DrawingClassPaint = paint;
+        }
     }
 
 }
