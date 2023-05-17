@@ -163,7 +163,7 @@
 0:0nwx1 
 # \002 is Ctrl-B, prefix key for tmux
 0:0sex1 
-# Esc OA is ??? TODO
+# Esc OA is "Up"
 0:0nx1 OA
 # Esc OC is "Right"
 0:0ex1 OC
