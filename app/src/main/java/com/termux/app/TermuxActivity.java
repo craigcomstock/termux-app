@@ -1123,7 +1123,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 OutputStream os = null;
                 try {
                     // copy from resources
-                    is = getResources().openRawResource(R.raw.gest  ure); // TODO extension is .conf? matters?
+                    is = getResources().openRawResource(R.raw.gesture); // TODO extension is .conf? matters?
                     os = new FileOutputStream(gesturesFile);
                     byte[] buffer = new byte[1024];
                     int length;
