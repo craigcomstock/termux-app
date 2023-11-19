@@ -82,6 +82,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -836,6 +837,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * if targeting targetSdkVersion 30 (android 11) and running on sdk 30 (android 11) and higher.
      */
     public void requestStoragePermission(boolean isPermissionCallback) {
+        Logger.logDebug(LOG_TAG, "requestStoragePermission()");
         new Thread() {
             @Override
             public void run() {
@@ -845,6 +847,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 // If permission is granted, then also setup storage symlinks.
                 if(PermissionUtils.checkAndRequestLegacyOrManageExternalStoragePermission(
                     TermuxActivity.this, requestCode, !isPermissionCallback)) {
+                    Logger.logDebug(LOG_TAG, "checkAndRequestLegacyManageExternalStoragePermission handler");
                     if (isPermissionCallback)
                         Logger.logInfoAndShowToast(TermuxActivity.this, LOG_TAG,
                             getString(com.termux.shared.R.string.msg_storage_permission_granted_on_request));
@@ -1120,16 +1123,25 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
     }
 
+    /**
+     * In one case I ran `termux-setup-storage` and got permission denied which also breaks loading gestures from storage.
+     * I was able to restore termux permissions by visiting Settings->Applications->Termux->Permissions
+     * and revoking/denying permission and re-running `termux-setup-storage`.
+     *
+     * Problem is currently this REQUIRES storage access, maybe it shouldn't? Just use resource if no file is present!
+     */
     void loadGestureConf() {
-        Logger.logDebug(LOG_TAG, "loadGestureConf()");
+        // TODO, why does logDebug() not show up in emulator logcat output?
+        Logger.logError(LOG_TAG, "loadGestureConf()");
         try {
             String gesturesFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/gesture.conf";
-            Logger.logDebug(LOG_TAG, "gesturesFilePath="+gesturesFilePath);
+            Logger.logError(LOG_TAG, "gesturesFilePath="+gesturesFilePath);
             File gesturesFile = new File(gesturesFilePath);
-            Logger.logDebug(LOG_TAG, "gesturesFile="+gesturesFile);
+            Logger.logError(LOG_TAG, "gesturesFile="+gesturesFile);
 
             // if gesture.conf isn't at /sdcard/gesture.conf then copy from resources
             if (!gesturesFile.exists()) {
+                Logger.logError(LOG_TAG, "gesturesFile doesn't exist, try copying from resources...");
                 InputStream is = null;
                 OutputStream os = null;
                 try {
@@ -1142,7 +1154,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                         os.write(buffer, 0, length);
                     }
                 } catch(Exception e) {
-                    e.printStackTrace();
                     Logger.logError(LOG_TAG, "copy raw resource gesture.conf failed: "+e);
                 } finally {
                     if (is != null) {
@@ -1153,35 +1164,43 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     }
                 }
             }
+            /**
+             * we prefer gesture.conf but if the above copy didn't work (no permissions for example)
+             * then we use the resource instead.
+             */
+            BufferedReader reader = null;
             gestures = new Properties();
-            if (gesturesFile.isFile()) {
-                BufferedReader reader = null;
-                try {
-                    reader = new BufferedReader(new FileReader(gesturesFile));
-                    String line = reader.readLine();
-                    while (line != null) {
-                        if (line.startsWith("#")) {
-                            Logger.logError(LOG_TAG, "comment line: "+line);
+            if (gesturesFile.exists()) {
+                Logger.logError(LOG_TAG, "trying to read gestures from gesturesFile: " + gesturesFile.getAbsolutePath());
+                reader = new BufferedReader(new FileReader(gesturesFile));
+            } else {
+                Logger.logError(LOG_TAG, "copy of gestures resource failed, read gestures from resource");
+                reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.gesture)));
+            }
+            try {
+                String line = reader.readLine();
+                while (line != null) {
+                    if (line.startsWith("#")) {
+                        Logger.logError(LOG_TAG, "comment line: "+line);
+                    } else {
+                        String parts[] = line.split(" ");
+                        if (parts.length != 2) {
+                            Logger.logError(LOG_TAG, "bad line: "+line);
                         } else {
-                            String parts[] = line.split(" ");
-                            if (parts.length != 2) {
-                                Logger.logError(LOG_TAG, "bad line: "+line);
-                            } else {
-                                Logger.logError(LOG_TAG, "key: "+parts[0]+", value: "+parts[1]);
-                                gestures.setProperty(parts[0],parts[1]);
-                            }
+                            Logger.logError(LOG_TAG, "key: "+parts[0]+", value: "+parts[1]);
+                            gestures.setProperty(parts[0],parts[1]);
                         }
-                        line = reader.readLine();
                     }
-                } finally {
-                    if (reader != null) {
-                        reader.close();
-                    }
+                    line = reader.readLine();
+                }
+            } finally {
+                if (reader != null) {
+                    reader.close();
                 }
             }
             Logger.logError(LOG_TAG, "gestures="+gestures);
         } catch (Exception e) {
-            Logger.logError(LOG_TAG, "Error in loadGestures()");
+            Logger.logError(LOG_TAG, "Error in loadGestureConf(): " + e);
         }
     }
 
