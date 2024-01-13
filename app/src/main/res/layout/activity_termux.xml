@@ -41,9 +41,8 @@
 
                 <RelativeLayout
                     android:id="@+id/gesturelayout"
-                    android:layout_width="100dp"
+                    android:layout_width="200dp"
                     android:layout_height="wrap_content"
-                    android:alpha="0.8"
                     android:background="@android:color/transparent">
                 </RelativeLayout>
 

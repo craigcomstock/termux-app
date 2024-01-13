@@ -116,7 +116,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
     @Override
     public void onTextChanged(@NonNull TerminalSession changedSession) {
-        Logger.logInfo(LOG_TAG, "CRAIG: onTextChanged()");
+        Logger.logInfo(LOG_TAG, "CRAIG: onTextChanged("+changedSession+")");
         // CRAIG TODO, is this getting bumped when screen doesn't refresh?
         if (!mActivity.isVisible()) return;
 
