@@ -612,6 +612,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
         mActivity.getTerminalView().setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean hasFocus) {
+                Logger.logInfo(LOG_TAG, "CRAIG: mActivity.getTerminalView().setOnFocusChangeListener().onFocusChange()");
                 // Force show soft keyboard if TerminalView or toolbar text input view has
                 // focus and close it if they don't
                 boolean textInputViewHasFocus = false;

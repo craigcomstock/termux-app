@@ -451,10 +451,15 @@ public final class TerminalView extends View {
     }
 
     public void onScreenUpdated() {
+        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated()");
+        // CRAIG TODO the TermuxTerminalSessionActivityClient notifies here
         onScreenUpdated(false);
     }
 
     public void onScreenUpdated(boolean skipScrolling) {
+        // CRAIG TODO is this bumped when screen isn't refreshed?
+        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(skipScrolling="+skipScrolling+")");
+
         if (mEmulator == null) return;
 
         int rowsInHistory = mEmulator.getScreen().getActiveTranscriptRows();
@@ -494,7 +499,8 @@ public final class TerminalView extends View {
 
         mEmulator.clearScrollCounter();
 
-        invalidate();
+        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), calling invalidate()");
+        invalidate(); // CRAIG TODO, does invalidate() cause onRender()
         if (mAccessibilityEnabled) setContentDescription(getText());
     }
 
@@ -1005,6 +1011,7 @@ public final class TerminalView extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        mClient.logInfo(LOG_TAG, "onDraw()");
         if (mEmulator == null) {
             canvas.drawColor(0XFF000000);
         } else {
