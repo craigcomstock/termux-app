@@ -483,6 +483,7 @@ public final class TerminalEmulator {
      * @param length the number of bytes in the array to process
      */
     public void append(byte[] buffer, int length) {
+        mClient.logInfo(LOG_TAG, "CRAIG: append(buffer, length="+length+")");
         for (int i = 0; i < length; i++)
             processByte(buffer[i]);
     }
