@@ -44,6 +44,8 @@ import com.termux.terminal.KeyHandler;
 import com.termux.terminal.TerminalEmulator;
 import com.termux.terminal.TerminalSession;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -74,6 +76,15 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
     private static final String LOG_TAG = "TermuxTerminalViewClient";
 
     public TermuxTerminalViewClient(TermuxActivity activity, TermuxTerminalSessionActivityClient termuxTerminalSessionActivityClient) {
+        System.out.println("CRAIG: new TermuxTerminalViewClient(), activity="+activity+", termuxTerminalSessionActivityClient="+termuxTerminalSessionActivityClient);
+        try {
+            throw new Exception("BOOM");
+        } catch( Exception e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            System.out.println("CRAIG: stacktrace: " + sw.toString());
+        }
         this.mActivity = activity;
         this.mTermuxTerminalSessionActivityClient = termuxTerminalSessionActivityClient;
     }
@@ -86,6 +97,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
      * Should be called when mActivity.onCreate() is called
      */
     public void onCreate() {
+        System.out.println("CRAIG: TermuxTerminalViewClient.onCreate()");
         onReloadProperties();
 
         mActivity.getTerminalView().setTextSize(mActivity.getPreferences().getFontSize());

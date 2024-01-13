@@ -236,7 +236,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        Logger.logDebug(LOG_TAG, "onCreate");
+        System.out.println("CRAIG: TermuxActivity.onCreate("+savedInstanceState+"), this="+this);
+        //Logger.logDebug(LOG_TAG, "onCreate("+savedInstanceState+"), this="+this);
         mIsOnResumeAfterOnCreate = true;
 
         if (savedInstanceState != null)
@@ -543,6 +544,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
 
     private void setTermuxTerminalViewAndClients() {
+        System.out.println("CRAIG: setTermuxTerminalViewAndClients()");
         // Set termux terminal view and session clients
         mTermuxTerminalSessionActivityClient = new TermuxTerminalSessionActivityClient(this);
         mTermuxTerminalViewClient = new TermuxTerminalViewClient(this, mTermuxTerminalSessionActivityClient);
@@ -1084,6 +1086,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         return intent;
     }
 
+    /*
     class SketchSheetView extends View {
         public SketchSheetView(Context context) {
             super(context);
@@ -1114,6 +1117,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         @Override
         protected void onDraw(Canvas canvas) {
+            Log.e(LOG_TAG, "CRAIG: SketchSheetView, onDraw()");
             super.onDraw(canvas);
             if (DrawingClassArrayList.size() > 0) {
                 canvas.drawPath(
@@ -1122,6 +1126,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             }
         }
     }
+*/
 
     /**
      * In one case I ran `termux-setup-storage` and got permission denied which also breaks loading gestures from storage.
@@ -1328,6 +1333,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                     gi--; // just keep pushing the last point into the last slot
                 }
             }
+
+            Logger.logDebug(LOG_TAG, "CRAIG: onTouchEvent(), calling invalidate()");
             invalidate();
             return true;
         }
@@ -1607,6 +1614,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         @Override
         protected void onDraw(Canvas canvas) {
+            Log.e("GESTURE", "CRAIG: GestureView, onDraw");
             super.onDraw(canvas);
             //	    Log.e("GESTURE", "onDraw(), DrawingClassArrayList.size="+DrawingClassArrayList.size());
 
