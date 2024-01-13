@@ -135,6 +135,7 @@ public final class TerminalView extends View {
 
     public TerminalView(Context context, AttributeSet attributes) { // NO_UCD (unused code)
         super(context, attributes);
+        TerminalView self = this;
         mGestureRecognizer = new GestureAndScaleRecognizer(context, new GestureAndScaleRecognizer.Listener() {
 
             boolean scrolledWithFinger;
@@ -168,6 +169,7 @@ public final class TerminalView extends View {
 
             @Override
             public boolean onScroll(MotionEvent e, float distanceX, float distanceY) {
+                System.out.println( "TerminalView/GestureHandler, CRAIG: onScroll()");
                 if (mEmulator == null) return true;
                 if (mEmulator.isMouseTrackingActive() && e.isFromSource(InputDevice.SOURCE_MOUSE)) {
                     // If moving with mouse pointer while pressing button, report that instead of scroll.
@@ -195,6 +197,7 @@ public final class TerminalView extends View {
 
             @Override
             public boolean onFling(final MotionEvent e2, float velocityX, float velocityY) {
+                System.out.println( "TerminalView/GestureHandler, CRAIG: onFling()");
                 if (mEmulator == null) return true;
                 // Do not start scrolling until last fling has been taken care of:
                 if (!mScroller.isFinished()) return true;
@@ -268,6 +271,7 @@ public final class TerminalView extends View {
      *                           for communication between {@link TerminalView} and its client.
      */
     public void setTerminalViewClient(TerminalViewClient client) {
+        System.out.println("CRAIG: setTerminalViewClient("+client+")");
         this.mClient = client;
     }
 
@@ -501,6 +505,9 @@ public final class TerminalView extends View {
 
         mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), calling invalidate()");
         invalidate(); // CRAIG TODO, does invalidate() cause onRender()
+        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), after invalidate(), now call requestLayout()");
+        this.getParent().requestLayout(); // maybe not needed?
+        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), after requestLayout()");
         if (mAccessibilityEnabled) setContentDescription(getText());
     }
 
@@ -588,6 +595,8 @@ public final class TerminalView extends View {
                 // e.g. less, which shifts to the alt screen without mouse handling.
                 handleKeyCode(up ? KeyEvent.KEYCODE_DPAD_UP : KeyEvent.KEYCODE_DPAD_DOWN, 0);
             } else {
+                System.out.println("CRAIG: doScroll() calling invalidate() on this="+this);
+                System.out.println("CRAIG: doScroll(), this.mClient=" + this.mClient);
                 mTopRow = Math.min(0, Math.max(-(mEmulator.getScreen().getActiveTranscriptRows()), mTopRow + (up ? -1 : 1)));
                 if (!awakenScrollBars()) invalidate();
             }
