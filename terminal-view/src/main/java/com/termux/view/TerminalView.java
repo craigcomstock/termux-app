@@ -812,6 +812,9 @@ public final class TerminalView extends View {
             inputCodePoint(event.getDeviceId(), result, controlDown, leftAltDown);
         }
 
+        // CRAIG, it seems that inputCodePoint() is called above
+        // CRAIG, but no refresh, maybe just ALWAYS call invalidate() or figure out WHY inputCodePoint() sometimes DOES cause invalidate()?
+        // CRAIG, reboot the device to get a fresh "state" of affairs and trace this method to updating something
         if (mCombiningAccent != oldCombiningAccent) invalidate();
 
         return true;

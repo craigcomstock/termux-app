@@ -37,7 +37,9 @@ public final class GestureView extends View {
     Properties gestures;
     int mHandlerCounter = 0; // keep track of which counter is "current" and only allow that one to cancel
 
+    // need the viewclient to change fontsize
     private TermuxTerminalViewClient mTermuxTerminalViewClient;
+    // the activity has the terminal session in which we inject characters recognized
     private TermuxActivity mTermuxActivity;
     private InputStream mGestureConfInputStream;
 
@@ -140,6 +142,10 @@ public final class GestureView extends View {
             File gesturesFile = new File(gesturesFilePath);
             Logger.logError(LOG_TAG, "gesturesFile="+gesturesFile);
 
+            if (gesturesFile.exists() && gesturesFile.length() == 0) {
+                // empty file? remove it, reload from resources
+                gesturesFile.delete();
+            }
             // if gesture.conf isn't at /sdcard/gesture.conf then copy from resources
             if (!gesturesFile.exists()) {
                 Logger.logError(LOG_TAG, "gesturesFile doesn't exist, try copying from resources...");
@@ -197,6 +203,9 @@ public final class GestureView extends View {
                 if (reader != null) {
                     reader.close();
                 }
+            }
+            if (gestures.size() == 0) {
+                // file was read but was empty, delete file to reload from resources next time
             }
             Logger.logError(LOG_TAG, "gestures="+gestures);
         } catch (Exception e) {
@@ -433,7 +442,7 @@ public final class GestureView extends View {
         // at this point we have our key, I think, let's just print it out and see if that much works. :+1:
         Logger.logError(LOG_TAG, "handleGesture(), key='"+key+"'");
 
-        if (gestures == null) {
+        if (gestures == null || gestures.size() == 0) {
             // TODO this might slow down the first recog but how else to do it?
             Logger.logError(LOG_TAG, "gesture.conf not loaded, do it now");
             //if (ensureStoragePermissionGranted()) {
