@@ -97,6 +97,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
      * Should be called when mActivity.onCreate() is called
      */
     public void onCreate() {
+        // TODO ah! a new viewclient is created but that isn't updated in the gestureview or even activity?
         System.out.println("CRAIG: TermuxTerminalViewClient.onCreate()");
         onReloadProperties();
 
@@ -369,6 +370,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
 
 
 
+    // CRAIG note: this method doesn't affect my refresh screen problem issue
     @Override
     public boolean onCodePoint(final int codePoint, boolean ctrlDown, TerminalSession session) {
         if (mVirtualFnKeyDown) {

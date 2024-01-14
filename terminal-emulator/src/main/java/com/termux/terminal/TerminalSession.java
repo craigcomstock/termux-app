@@ -86,6 +86,7 @@ public final class TerminalSession extends TerminalOutput {
         this.mEnv = env;
         this.mTranscriptRows = transcriptRows;
         this.mClient = client;
+        System.out.println("CRAIGSESSION, new TerminalSession()");
     }
 
     /**
@@ -222,7 +223,7 @@ public final class TerminalSession extends TerminalOutput {
 
     /** Notify the {@link #mClient} that the screen has changed. */
     protected void notifyScreenUpdate() {
-        System.out.println("CRAIG: TerminalSession.notifyScreenUpdate() calling mClient.onTextChanged(), mClient="+mClient);
+        System.out.println("CRAIGSESSION: TerminalSession.notifyScreenUpdate() calling mClient.onTextChanged(), mClient="+mClient);
         mClient.onTextChanged(this);
     }
 
@@ -344,7 +345,7 @@ public final class TerminalSession extends TerminalOutput {
             Logger.logError(mClient, LOG_TAG, "CRAIG: handleMessage(" + msg + ")" );
 
             int bytesRead = mProcessToTerminalIOQueue.read(mReceiveBuffer, false);
-            Logger.logError(mClient, LOG_TAG, "CRAIG: bytesRead="+bytesRead);
+            Logger.logError(mClient, LOG_TAG, "CRAIGSESSION: bytesRead="+bytesRead);
             if (bytesRead > 0) {
                 mEmulator.append(mReceiveBuffer, bytesRead);
                 notifyScreenUpdate();
