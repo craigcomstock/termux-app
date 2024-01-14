@@ -195,7 +195,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     private static final String LOG_TAG = "TermuxActivity";
 
-    GestureView gestureView;
+    GestureView mGestureView;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -221,9 +221,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         //gestureLayout = (RelativeLayout) findViewById(R.id.gesturelayout);
         //gestureView = new GestureView(TermuxActivity.this);
-        gestureView = (GestureView) findViewById(R.id.gesture_view);
-        gestureView.setTermuxActivity(this);
-        gestureView.setGestureConfInputStream(getResources().openRawResource(R.raw.gesture));
+        mGestureView = (GestureView) findViewById(R.id.gesture_view);
+        mGestureView.setGestureConfInputStream(getResources().openRawResource(R.raw.gesture));
 
         // Load termux shared preferences
         // This will also fail if TermuxConstants.TERMUX_PACKAGE_NAME does not equal applicationId
@@ -252,7 +251,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
 
         setTermuxTerminalViewAndClients();
-        gestureView.setTerminalViewClient(this.mTermuxTerminalViewClient);
 
         // TODO, for gesture branch I never want this toolbar since gestures handle these extra keys nicely
         //setTerminalToolbarView(savedInstanceState);
@@ -514,6 +512,9 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         if (mTermuxTerminalSessionActivityClient != null)
             mTermuxTerminalSessionActivityClient.onCreate();
+
+        mGestureView.setTermuxActivity(this);
+        mGestureView.setTerminalViewClient(mTermuxTerminalViewClient);
     }
 
     private void setTermuxSessionsListView() {
@@ -795,6 +796,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * if targeting targetSdkVersion 30 (android 11) and running on sdk 30 (android 11) and higher.
      */
     public void requestStoragePermission(boolean isPermissionCallback) {
+
         Logger.logDebug(LOG_TAG, "requestStoragePermission()");
         new Thread() {
             @Override
@@ -811,7 +813,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                             getString(com.termux.shared.R.string.msg_storage_permission_granted_on_request));
 
                     TermuxInstaller.setupStorageSymlinks(TermuxActivity.this);
-                    gestureView.loadGestureConf();
+                    mGestureView.loadGestureConf();
                 } else {
                     if (isPermissionCallback)
                         Logger.logInfoAndShowToast(TermuxActivity.this, LOG_TAG,
