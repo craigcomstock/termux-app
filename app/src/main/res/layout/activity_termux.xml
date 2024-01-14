@@ -39,12 +39,12 @@
                     android:autofillHints="password"
                     tools:ignore="UnusedAttribute" />
 
-                <RelativeLayout
-                    android:id="@+id/gesturelayout"
-                    android:layout_width="200dp"
+                <com.termux.app.GestureView
+                    android:id="@+id/gesture_view"
+                    android:layout_width="300px"
                     android:layout_height="wrap_content"
                     android:background="@android:color/transparent">
-                </RelativeLayout>
+                </com.termux.app.GestureView>
 
             </FrameLayout>
 
