@@ -11,9 +11,6 @@ import com.termux.terminal.TerminalRow;
 import com.termux.terminal.TextStyle;
 import com.termux.terminal.WcWidth;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  * Renderer of a {@link TerminalEmulator} into a {@link Canvas}.
  * <p/>
@@ -59,8 +56,6 @@ public final class TerminalRenderer {
     /** Render the terminal to a canvas with at a specified row scroll, and an optional rectangular selection. */
     public final void render(TerminalEmulator mEmulator, Canvas canvas, int topRow,
                              int selectionY1, int selectionY2, int selectionX1, int selectionX2) {
-        Logger log = Logger.getLogger("TerminalRenderer");
-        log.log(Level.INFO, "render()");
         final boolean reverseVideo = mEmulator.isReverseVideo();
         final int endRow = topRow + mEmulator.mRows;
         final int columns = mEmulator.mColumns;
