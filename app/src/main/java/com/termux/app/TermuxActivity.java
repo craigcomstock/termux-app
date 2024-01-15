@@ -198,8 +198,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        System.out.println("CRAIG: TermuxActivity.onCreate("+savedInstanceState+"), this="+this);
-        //Logger.logDebug(LOG_TAG, "onCreate("+savedInstanceState+"), this="+this);
         mIsOnResumeAfterOnCreate = true;
 
         if (savedInstanceState != null)
@@ -218,8 +216,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
         setContentView(R.layout.activity_termux);
 
-        //gestureLayout = (RelativeLayout) findViewById(R.id.gesturelayout);
-        //gestureView = new GestureView(TermuxActivity.this);
         mGestureView = (GestureView) findViewById(R.id.gesture_view);
         mGestureView.setGestureConfInputStream(getResources().openRawResource(R.raw.gesture));
 
@@ -497,7 +493,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
 
 
     private void setTermuxTerminalViewAndClients() {
-        System.out.println("CRAIG: setTermuxTerminalViewAndClients()");
         // Set termux terminal view and session clients
         mTermuxTerminalSessionActivityClient = new TermuxTerminalSessionActivityClient(this);
         mTermuxTerminalViewClient = new TermuxTerminalViewClient(this, mTermuxTerminalSessionActivityClient);
@@ -785,8 +780,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
      * if targeting targetSdkVersion 30 (android 11) and running on sdk 30 (android 11) and higher.
      */
     public void requestStoragePermission(boolean isPermissionCallback) {
-
-        Logger.logDebug(LOG_TAG, "requestStoragePermission()");
         new Thread() {
             @Override
             public void run() {
@@ -796,7 +789,6 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
                 // If permission is granted, then also setup storage symlinks.
                 if(PermissionUtils.checkAndRequestLegacyOrManageExternalStoragePermission(
                     TermuxActivity.this, requestCode, !isPermissionCallback)) {
-                    Logger.logDebug(LOG_TAG, "checkAndRequestLegacyManageExternalStoragePermission handler");
                     if (isPermissionCallback)
                         Logger.logInfoAndShowToast(TermuxActivity.this, LOG_TAG,
                             getString(com.termux.shared.R.string.msg_storage_permission_granted_on_request));
@@ -1002,6 +994,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         }
 
         setMargins();
+        // gesture version has no toolbar
         //setTerminalToolbarHeight();
 
         FileReceiverActivity.updateFileReceiverActivityComponentsState(this);
