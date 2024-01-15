@@ -50,6 +50,20 @@
         android:theme="@style/Theme.TermuxApp.DayNight.DarkActionBar"
         tools:targetApi="m">
 
+        <!-- attempt to fix home/launcher behavior with an interstitial activity -->
+        <activity
+            android:name=".app.HomeActivity"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.HOME"/>
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".app.TermuxActivity"
             android:exported="true"
@@ -63,8 +77,6 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.HOME" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
