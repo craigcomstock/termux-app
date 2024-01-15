@@ -116,13 +116,8 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
 
     @Override
     public void onTextChanged(@NonNull TerminalSession changedSession) {
-        Logger.logInfo(LOG_TAG, "CRAIG: onTextChanged("+changedSession+")");
-        // CRAIG TODO, is this getting bumped when screen doesn't refresh?
-        // CRAIG FIXME, onTextChanged() which calls onScreenUpdated() is not being called in the "bad state" for my issue 2024-01-14 :)
         if (!mActivity.isVisible()) return;
 
-        // CRAIG TODO, maybe the sessions are getting mixed up? onTextChanged() isn't even called!?
-        System.out.println("CRAIGSESSION: TermuxTerminalSessionActivityClient.onTextChanged(), currentSession="+mActivity.getCurrentSession()+", changedSession="+changedSession);
         if (mActivity.getCurrentSession() == changedSession) mActivity.getTerminalView().onScreenUpdated();
     }
 
