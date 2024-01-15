@@ -44,8 +44,6 @@ import com.termux.terminal.KeyHandler;
 import com.termux.terminal.TerminalEmulator;
 import com.termux.terminal.TerminalSession;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -76,15 +74,6 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
     private static final String LOG_TAG = "TermuxTerminalViewClient";
 
     public TermuxTerminalViewClient(TermuxActivity activity, TermuxTerminalSessionActivityClient termuxTerminalSessionActivityClient) {
-        System.out.println("CRAIG: new TermuxTerminalViewClient(), activity="+activity+", termuxTerminalSessionActivityClient="+termuxTerminalSessionActivityClient);
-        try {
-            throw new Exception("BOOM");
-        } catch( Exception e) {
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            e.printStackTrace(pw);
-            System.out.println("CRAIG: stacktrace: " + sw.toString());
-        }
         this.mActivity = activity;
         this.mTermuxTerminalSessionActivityClient = termuxTerminalSessionActivityClient;
     }
@@ -97,8 +86,6 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
      * Should be called when mActivity.onCreate() is called
      */
     public void onCreate() {
-        // TODO ah! a new viewclient is created but that isn't updated in the gestureview or even activity?
-        System.out.println("CRAIG: TermuxTerminalViewClient.onCreate()");
         onReloadProperties();
 
         mActivity.getTerminalView().setTextSize(mActivity.getPreferences().getFontSize());
@@ -370,7 +357,6 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
 
 
 
-    // CRAIG note: this method doesn't affect my refresh screen problem issue
     @Override
     public boolean onCodePoint(final int codePoint, boolean ctrlDown, TerminalSession session) {
         if (mVirtualFnKeyDown) {
@@ -626,7 +612,6 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
         mActivity.getTerminalView().setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean hasFocus) {
-                Logger.logInfo(LOG_TAG, "CRAIG: mActivity.getTerminalView().setOnFocusChangeListener().onFocusChange()");
                 // Force show soft keyboard if TerminalView or toolbar text input view has
                 // focus and close it if they don't
                 boolean textInputViewHasFocus = false;
