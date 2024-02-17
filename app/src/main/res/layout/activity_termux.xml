@@ -41,7 +41,7 @@
 
                 <com.termux.app.GestureView
                     android:id="@+id/gesture_view"
-                    android:layout_width="300px"
+                    android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
                     android:background="@android:color/transparent">
                 </com.termux.app.GestureView>
