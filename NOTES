@@ -1,0 +1,18 @@
+Sun Feb 18 10:54:23 CST 2024
+
+need to fix termux-app not sleeping/not timing out and turning screen off
+
+02-18 10:51:06.604   776   864 I PowerManagerService: Going to sleep due to screen timeout (uid 1000)...
+02-18 10:51:06.606   776   864 W DreamManagerService: Dream ComponentInfo{com.qualcomm.qti.contextualmode/com.qualcomm.qti.contextualmode.ContextualModeDozeService} does not exist
+02-18 10:51:06.606   776   864 I PowerManagerService: Sleeping (uid 1000)...
+02-18 10:51:06.607   776   864 I DisplayPowerController: Blocking screen off
+02-18 10:51:06.607   776   864 I DisplayPowerController: Unblocked screen off after 0 ms
+02-18 10:51:06.612   776   864 D ActivityTrigger: ActivityTrigger activityPauseTrigger 
+02-18 10:51:06.613  9213  9213 D LauncherActivity: Un un-registering package update receiver
+02-18 10:51:06.620   776   862 I DisplayManagerService: Display device changed state: "Built-in Screen", OFF
+02-18 10:51:06.645   480   480 D SurfaceFlinger: Set power mode=0, type=0 flinger=0xaa1b6000
+02-18 10:51:06.646   456  5793 I SDM     : DisplayBase::SetDisplayState: Set state = 0, display 0
+02-18 10:51:06.653   776   845 D ActivityTrigger: ActivityTrigger activityStopTrigger 
+02-18 10:51:06.656  9213  9213 V LauncherActivity: Main Activity exiting..
+
+that's when simple sms messenger, but maybe termux-app not listening?
