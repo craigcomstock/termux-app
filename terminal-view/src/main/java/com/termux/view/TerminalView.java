@@ -131,7 +131,7 @@ public final class TerminalView extends View {
 
             @Override
             public boolean onScroll(MotionEvent e, float distanceX, float distanceY) {
-                System.out.println( "TerminalView/GestureHandler, CRAIG: onScroll()");
+//                System.out.println( "TerminalView/GestureHandler, CRAIG: onScroll()");
                 if (mEmulator == null) return true;
                 if (mEmulator.isMouseTrackingActive() && e.isFromSource(InputDevice.SOURCE_MOUSE)) {
                     // If moving with mouse pointer while pressing button, report that instead of scroll.
@@ -159,7 +159,7 @@ public final class TerminalView extends View {
 
             @Override
             public boolean onFling(final MotionEvent e2, float velocityX, float velocityY) {
-                System.out.println( "TerminalView/GestureHandler, CRAIG: onFling()");
+//                System.out.println( "TerminalView/GestureHandler, CRAIG: onFling()");
                 if (mEmulator == null) return true;
                 // Do not start scrolling until last fling has been taken care of:
                 if (!mScroller.isFinished()) return true;
@@ -233,7 +233,7 @@ public final class TerminalView extends View {
      *                           for communication between {@link TerminalView} and its client.
      */
     public void setTerminalViewClient(TerminalViewClient client) {
-        System.out.println("CRAIG: setTerminalViewClient("+client+")");
+//        System.out.println("CRAIG: setTerminalViewClient("+client+")");
         this.mClient = client;
     }
 
@@ -417,14 +417,14 @@ public final class TerminalView extends View {
     }
 
     public void onScreenUpdated() {
-        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated()");
+//        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated()");
         // CRAIG TODO the TermuxTerminalSessionActivityClient notifies here
         onScreenUpdated(false);
     }
 
     public void onScreenUpdated(boolean skipScrolling) {
         // CRAIG TODO is this bumped when screen isn't refreshed?
-        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(skipScrolling="+skipScrolling+")");
+//        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(skipScrolling="+skipScrolling+")");
 
         if (mEmulator == null) return;
 
@@ -465,11 +465,11 @@ public final class TerminalView extends View {
 
         mEmulator.clearScrollCounter();
 
-        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), calling invalidate()");
+//        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), calling invalidate()");
         invalidate(); // CRAIG TODO, does invalidate() cause onRender()
-        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), after invalidate(), now call requestLayout()");
+//        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), after invalidate(), now call requestLayout()");
         this.getParent().requestLayout(); // maybe not needed?
-        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), after requestLayout()");
+//        mClient.logInfo(LOG_TAG, "CRAIG: onScreenUpdated(), after requestLayout()");
         if (mAccessibilityEnabled) setContentDescription(getText());
     }
 
@@ -557,8 +557,8 @@ public final class TerminalView extends View {
                 // e.g. less, which shifts to the alt screen without mouse handling.
                 handleKeyCode(up ? KeyEvent.KEYCODE_DPAD_UP : KeyEvent.KEYCODE_DPAD_DOWN, 0);
             } else {
-                System.out.println("CRAIG: doScroll() calling invalidate() on this="+this);
-                System.out.println("CRAIG: doScroll(), this.mClient=" + this.mClient);
+//                System.out.println("CRAIG: doScroll() calling invalidate() on this="+this);
+//                System.out.println("CRAIG: doScroll(), this.mClient=" + this.mClient);
                 mTopRow = Math.min(0, Math.max(-(mEmulator.getScreen().getActiveTranscriptRows()), mTopRow + (up ? -1 : 1)));
                 if (!awakenScrollBars()) invalidate();
             }
@@ -984,7 +984,6 @@ public final class TerminalView extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        mClient.logInfo(LOG_TAG, "onDraw()");
         if (mEmulator == null) {
             canvas.drawColor(0XFF000000);
         } else {
