@@ -193,7 +193,7 @@ public final class GestureView extends View {
                         if (parts.length != 2) {
                             Logger.logError(LOG_TAG, "bad line: "+line);
                         } else {
-                            Logger.logError(LOG_TAG, "key: "+parts[0]+", value: "+parts[1]);
+//                            Logger.logError(LOG_TAG, "key: "+parts[0]+", value: "+parts[1]);
                             gestures.setProperty(parts[0],parts[1]);
                         }
                     }
@@ -207,7 +207,7 @@ public final class GestureView extends View {
             if (gestures.size() == 0) {
                 // file was read but was empty, delete file to reload from resources next time
             }
-            Logger.logError(LOG_TAG, "gestures="+gestures);
+//            Logger.logError(LOG_TAG, "gestures="+gestures);
         } catch (Exception e) {
             Logger.logError(LOG_TAG, "Error in loadGestureConf(): " + e);
         }
@@ -440,7 +440,7 @@ public final class GestureView extends View {
         }
 
         // at this point we have our key, I think, let's just print it out and see if that much works. :+1:
-        Logger.logError(LOG_TAG, "handleGesture(), key='"+key+"'");
+//        Logger.logError(LOG_TAG, "handleGesture(), key='"+key+"'");
 
         if (gestures == null || gestures.size() == 0) {
             // TODO this might slow down the first recog but how else to do it?
@@ -453,7 +453,7 @@ public final class GestureView extends View {
             //}
         }
         String value = gestures.getProperty(key);
-        Logger.logError(LOG_TAG, "value from gesture.conf: "+value);
+//        Logger.logError(LOG_TAG, "value from gesture.conf: "+value);
         //letterView.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL);
         if (value != null) {
             // first translate some special names to single character
@@ -545,7 +545,7 @@ public final class GestureView extends View {
                 }
             }
 
-            Logger.logError(LOG_TAG, "toput='"+toput+"' toput.length="+toput.length());
+//            Logger.logError(LOG_TAG, "toput='"+toput+"' toput.length="+toput.length());
 
             if (toput.length() > 0) {
                 TerminalSession session = mTermuxActivity.getCurrentTermSession();
