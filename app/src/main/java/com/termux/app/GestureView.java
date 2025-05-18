@@ -393,9 +393,10 @@ public final class GestureView extends View {
             key += ".";
             dot = false;
         }
-        if (slash) {
-            key += "/";
-            slash = false;
+        if (prefix)
+        {
+            key += "\\";
+            prefix = false;
         }
 
         i = 0;
@@ -461,17 +462,6 @@ public final class GestureView extends View {
                 toput = "" + (char)0x0d;
             } else if (value.equals("prefix")) {
                 // TODO 2023-may-17, remove all 2-line business
-                // TODO if in prefix mode already and keys are up or down or home or end
-                // then move 2-line "first line" around but keep current line (prompt)
-                // as second line in 2-line display
-/*
-                    if (prefix) {
-                        Log.e("CRAIG", "prefix-prefix entered, toggle visibility of lineView and mTerminalView");
-                        toggleViewVisibility(lineView);
-                        toggleViewVisibility(mTerminalView);
-                        updateLineView();
-                    }
- */
                 prefix = !prefix;
                 // gesture prefix char
                 // TODO might be nice to have some graphical indication
@@ -500,6 +490,14 @@ public final class GestureView extends View {
                 }
             } else if (value.equals("control")) {
                 control = !control;
+            } else if (value.equals("font-bigger")) }
+                mTermuxTerminalViewClient.changeFontSize(true);
+                toput = "";
+                prefix = !prefix;
+            } else if (value.equals("font-smaller")) {
+                mTermuxTerminalViewClient.changeFontSize(false);
+                toput = "";
+                prefix = !prefix;
             } else {
                 toput = value;
 
@@ -510,39 +508,12 @@ public final class GestureView extends View {
                     if (shift && !caps) {
                         shift = !shift;
                     }
-                    if (prefix) {
-                        // TODO 2023-may-17, remove 2-line stuff
-                        // TODO for both 2-line and console view, need to manage keyboard input focus
-                            /*
-                            if (toput.equals("b")) { // big letter display
-                                toggleViewVisibility(letterView);
-                            } else if (toput.equals("i")) { // image display
-                                //                        toggleViewVisibility(graphicsView); // TODO
-                            } else if (toput.equals("g")) { // gesture layer
-                                toggleViewVisibility(gestureView);
-                            }
-                             */
-                        prefix = !prefix; // regardless, get out of prefix mode
-                        toput = ""; // empty out the char, don't put anything
-                    }
                     if (control) {
                         toput = "" + (char)(toput.charAt(0) - 96);
                         control = !control;
                     }
                 } // value is length 1, simple char
 
-                if (prefix) {
-                    // font size controls to replace pinch zoom
-                    if (toput.equals("\u001BOA")) { // up
-                        mTermuxTerminalViewClient.changeFontSize(true);
-                        toput = ""; // no output, just font size change
-                    }
-                    if (toput.equals("\u001BOB")) { // down
-                        mTermuxTerminalViewClient.changeFontSize(false);
-                        toput = ""; // no output, just font size change
-                    }
-                    prefix = !prefix;
-                }
             }
 
             Logger.logError(LOG_TAG, "toput='"+toput+"' toput.length="+toput.length());
