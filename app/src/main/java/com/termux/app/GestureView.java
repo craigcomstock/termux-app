@@ -15,6 +15,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.termux.app.terminal.TermuxTerminalViewClient;
+import com.termux.app.terminal.TermuxTerminalSessionActivityClient;
 import com.termux.shared.logger.Logger;
 import com.termux.terminal.TerminalSession;
 
