@@ -321,6 +321,7 @@ public final class GestureView extends View {
 
     // TODO UTF-8, other character set support? Use a String instead? auto-support for such things?
     String handleGesture(Gesture gs, int screen_width, int screen_height, int minimum_chunk_size) {
+        Log.e("TERMUX_ACTIVITY", "handleGesture(), prefix="+prefix+", dot="+dot+", shift="+shift);
         //	    Log.e("TERMUX_ACTIVITY", "handleGesture(), screen_width="+screen_width+", screen_height="+screen_height+", minimum_chunk_size="+minimum_chunk_size);
 
         String toput = "";
@@ -406,7 +407,7 @@ public final class GestureView extends View {
         if (prefix)
         {
             key += "\\";
-            prefix = false;
+            prefix = !prefix;
         }
 
         i = 0;
@@ -418,7 +419,7 @@ public final class GestureView extends View {
         for (; i <= kyi; i++) {
             key += key_y[i];
         }
-        if (key.equals("0:0") || key.equals(".0:0")) {
+        if (key.equals("0:0") || key.equals(".0:0") || key.equals("\\0:0")) {
             //		Log.d("TERMUX_ACTIVITY", "gesture, gs.maxy="+gs.maxy+", gs.miny="+gs.min
             if (gs.maxy > screen_height - minimum_chunk_size) {
                 key += "s";
@@ -512,7 +513,7 @@ public final class GestureView extends View {
 // terminal/io/TermuxTerminalExtraKeys.java has mTermuxTerminalSessionActivityClient
 // termuxTerminalSessionActivityClient.onCopyTextToClipboard(session, text) // tricky, wont work really, TODO how to select when gesturing? toggle back to normal termux-app mode for a bit somehow, maybe this action moves into normal mode for selecting and then once you select in the menu toggles back to gesture mode?
             } else if (value.equals("clipboard-paste")) {
-                mTermuxTerminalSessionActivityClient(null); // like TermuxTerminalExtraKeys
+                this.mTermuxTerminalSessionActivityClient.onPasteTextFromClipboard(null); // like TermuxTerminalExtraKeys
                 toput="";
                 prefix=!prefix;
             } else {
@@ -560,7 +561,7 @@ public final class GestureView extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        Log.e("GESTURE", "CRAIG: GestureView, onDraw");
+//        Log.e("GESTURE", "CRAIG: GestureView, onDraw");
         super.onDraw(canvas);
         //	    Log.e("GESTURE", "onDraw(), DrawingClassArrayList.size="+DrawingClassArrayList.size());
 
