@@ -499,7 +499,7 @@ public final class GestureView extends View {
                 }
             } else if (value.equals("control")) {
                 control = !control;
-            } else if (value.equals("font-bigger")) }
+            } else if (value.equals("font-bigger")) {
                 mTermuxTerminalViewClient.changeFontSize(true);
                 toput = "";
                 prefix = !prefix;
