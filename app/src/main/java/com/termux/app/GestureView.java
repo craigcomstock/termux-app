@@ -98,7 +98,7 @@ public final class GestureView extends View {
     }
     TsEvent[] events = new TsEvent[300];
 
-    boolean slash, dot, shift, control, escape, alt, caps, prefix = false;
+    boolean dot, shift, control, escape, alt, caps, prefix = false;
 
     class Point {
         public int x;
