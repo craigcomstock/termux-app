@@ -39,6 +39,7 @@ public final class GestureView extends View {
 
     // need the viewclient to change fontsize
     private TermuxTerminalViewClient mTermuxTerminalViewClient;
+    private TermuxTerminalSessionActivityClient mTermuxTerminalSessionActivityClient;
     // the activity has the terminal session in which we inject characters recognized
     private TermuxActivity mTermuxActivity;
     private InputStream mGestureConfInputStream;
@@ -47,6 +48,8 @@ public final class GestureView extends View {
 
     private static Handler mHandler = null;
 
+// todo: probably best to set the TermuxTerminalViewClient for fontsize and TermuxTerminalSessionActivityClient for clipboard in the constructor
+// but for now, set explicitly in TermuxActivity
     public GestureView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
 
@@ -78,6 +81,9 @@ public final class GestureView extends View {
 
     public void setTerminalViewClient(TermuxTerminalViewClient client) {
         this.mTermuxTerminalViewClient = client;
+    }
+    public void setTerminalSessionActivityClient(TermuxTerminalSessionActivityClient client) {
+        this.mTermuxTerminalSessionActivityClient = client;
     }
 
     public void setTermuxActivity(TermuxActivity termuxActivity) {
@@ -393,6 +399,9 @@ public final class GestureView extends View {
             key += ".";
             dot = false;
         }
+        // special gesture to get into commands specific to gesture itself and interacting with the system in special ways
+        // like font +/-, copy/paste
+        // TODO: toggle back/forth to regular termux mode so you can select text
         if (prefix)
         {
             key += "\\";
@@ -498,6 +507,13 @@ public final class GestureView extends View {
                 mTermuxTerminalViewClient.changeFontSize(false);
                 toput = "";
                 prefix = !prefix;
+            } else if (value.equals("clipboard-copy")) {
+// terminal/io/TermuxTerminalExtraKeys.java has mTermuxTerminalSessionActivityClient
+// termuxTerminalSessionActivityClient.onCopyTextToClipboard(session, text) // tricky, wont work really, TODO how to select when gesturing? toggle back to normal termux-app mode for a bit somehow, maybe this action moves into normal mode for selecting and then once you select in the menu toggles back to gesture mode?
+            } else if (value.equals("clipboard-paste")) {
+                mTermuxTerminalSessionActivityClient(null); // like TermuxTerminalExtraKeys
+                toput="";
+                prefix=!prefix;
             } else {
                 toput = value;
 

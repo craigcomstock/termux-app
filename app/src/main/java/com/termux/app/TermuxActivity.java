@@ -508,7 +508,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             mTermuxTerminalSessionActivityClient.onCreate();
 
         mGestureView.setTermuxActivity(this);
-        mGestureView.setTerminalViewClient(mTermuxTerminalViewClient);
+        mGestureView.setTerminalViewClient(mTermuxTerminalViewClient); // for fontsize changes
+        mGestureView.setTerminalSessionActivityClient(mTermuxTerminalSessionActivityClient); // for clipboard
     }
 
     private void setTermuxSessionsListView() {
