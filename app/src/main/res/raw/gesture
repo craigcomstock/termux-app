@@ -26,7 +26,7 @@
 0:210x14 shift
 012:210x24 tab 
 .012:210x124 tab
-# prefix gesture for gesture itself
+# prefix gesture for gesture itself, keys start with \ for prefixed items in this file like font-bigger and font-smaller
 210:210x13 prefix
 012:0x12 space
 .0:210x14 !
@@ -165,10 +165,12 @@
 0:0sex1 
 # Esc OA is "Up"
 0:0nx1 OA
+\0:0nx1 font-bigger
 # Esc OC is "Right"
 0:0ex1 OC
 # Esc OB is "Down"
 0:0sx1 OB
+\0:0sx1 font-smaller
 # Esc OD is "Left"
 0:0wx1 OD
 # \177 is DEL
