@@ -407,7 +407,6 @@ public final class GestureView extends View {
         if (prefix)
         {
             key += "\\";
-            prefix = !prefix;
         }
 
         i = 0;
